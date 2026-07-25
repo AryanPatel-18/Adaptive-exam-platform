@@ -7,4 +7,5 @@ urlpatterns = [
     path('api/auth/',include("authentication.urls")),
     path('api/workspace/',include("workspace.urls")),
     path('api/files/',include("files.urls")),
+    path('api/processing/',include("processing.urls")),
 ]

@@ -3,6 +3,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError, EndpointConnectionError
 from decouple import config
 import logging
+from pathlib import Path
 
 from storage.exceptions import (
     BucketCreationException,
@@ -303,4 +304,57 @@ class MinIOProvider:
             logger.error("Failed to delete object %s from storage: %s", storage_key, exc, exc_info=True)
             raise StorageException(
                 detail="Failed to delete object from storage."
+            ) from exc
+
+    def download_file(
+        self,
+        storage_key: str,
+        destination: str | Path,
+    ) -> Path:
+        """
+        Download a file from the storage bucket to a local path.
+
+        Args:
+            storage_key: Object key inside the bucket.
+            destination: Local file path where the object should be downloaded.
+
+        Returns:
+            Absolute path to the downloaded file.
+
+        Raises:
+            StorageException:
+                If the download fails.
+        """
+
+        destination = Path(destination)
+        destination.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        try:
+            self._client.download_file(
+                Bucket=self.bucket_name,
+                Key=storage_key,
+                Filename=str(destination),
+            )
+
+            logger.info(
+                "Successfully downloaded object '%s' to '%s'.",
+                storage_key,
+                destination,
+            )
+
+            return destination
+
+        except (ClientError, OSError) as exc:
+            logger.error(
+                "Failed to download object '%s': %s",
+                storage_key,
+                exc,
+                exc_info=True,
+            )
+
+            raise StorageException(
+                detail="Failed to download file from storage."
             ) from exc

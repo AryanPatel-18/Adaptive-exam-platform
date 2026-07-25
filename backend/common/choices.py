@@ -53,3 +53,21 @@ class FileStatus(models.TextChoices):
     PROCESSING = "PROCESSING", "Processing"
     ARCHIVED = "ARCHIVED", "Archived"
     DELETED = "DELETED", "Deleted"
+
+class ProcessingStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    RUNNING = "RUNNING", "Running"
+    COMPLETED = "COMPLETED", "Completed"
+    FAILED = "FAILED", "Failed"
+    CANCELLED = "CANCELLED", "Cancelled"
+
+
+class ProcessingStage(models.TextChoices):
+    INITIALIZED = "INITIALIZED", "Initialized"
+    DOWNLOADING = "DOWNLOADING", "Downloading Files"
+    EXTRACTING = "EXTRACTING", "Extracting Content"
+    VALIDATING = "VALIDATING", "Validating Data"
+    PERSISTING = "PERSISTING", "Persisting Data"
+    CLEANING_UP = "CLEANING_UP", "Cleaning Up"
+    FINISHED = "FINISHED", "Finished"
+
