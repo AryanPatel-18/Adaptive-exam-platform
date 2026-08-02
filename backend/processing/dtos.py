@@ -18,3 +18,11 @@ class ExtractedQuestion:
 @dataclass(slots=True)
 class ExtractionResult:
     questions: list[ExtractedQuestion] = field(default_factory=list)
+
+@dataclass(slots=True, frozen=True)
+class OCRResult:
+    """
+    Represents the result of an OCR extraction.
+    """
+
+    text: str

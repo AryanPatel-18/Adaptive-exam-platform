@@ -1,4 +1,7 @@
+import logging
 from uuid import UUID
+
+logger = logging.getLogger("processing")
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -14,7 +17,7 @@ from workspace.models import Workspace
 
 class ProcessWorkspaceView(APIView):
     """
-    Process a question bank file for a workspace.
+    Process files (question bank and notes) for a workspace.
     """
 
     def post(
@@ -23,26 +26,41 @@ class ProcessWorkspaceView(APIView):
         workspace_id: UUID,
     ) -> Response:
         """
-        Process a single question bank file.
+        Process the latest question bank and notes files for a workspace.
 
         Args:
             request: Incoming HTTP request.
             workspace_id: Workspace identifier.
         """
 
+        logger.info("Processing requested for workspace_id=%s", workspace_id)
+
         workspace = self._get_workspace(
             workspace_id=workspace_id,
             user=request.user,
         )
 
-        source_file = self._get_source_file(
+        question_bank_file = self._get_question_bank_file(
             workspace=workspace,
         )
 
+        notes_file = self._get_notes_file(
+            workspace=workspace,
+        )
+
+        logger.info("Question bank processing started for file_id=%s", question_bank_file.id)
         ProcessingService.process(
             workspace=workspace,
-            source_file=source_file,
+            source_file=question_bank_file,
         )
+
+        logger.info("Notes processing started for file_id=%s", notes_file.id)
+        ProcessingService.process_notes(
+            workspace=workspace,
+            source_file=notes_file,
+        )
+
+        logger.info("Processing completed successfully for workspace_id=%s", workspace.id)
 
         return Response(
             {
@@ -79,7 +97,7 @@ class ProcessWorkspaceView(APIView):
             raise WorkspaceNotFoundException() from exc
 
     @staticmethod
-    def _get_source_file(
+    def _get_question_bank_file(
         workspace: Workspace,
     ) -> File:
         """
@@ -93,7 +111,7 @@ class ProcessWorkspaceView(APIView):
 
         Raises:
             FileNotFoundException:
-                If the file does not exist or does not belong to the workspace.
+                If the question bank file does not exist.
         """
         source_file = File.objects.filter(
             workspace=workspace,
@@ -104,3 +122,30 @@ class ProcessWorkspaceView(APIView):
             raise FileNotFoundException("No question bank file found for this workspace.")
             
         return source_file
+
+    @staticmethod
+    def _get_notes_file(
+        workspace: Workspace,
+    ) -> File:
+        """
+        Retrieve the latest notes file to be processed for the workspace.
+
+        Args:
+            workspace: Workspace instance.
+
+        Returns:
+            File instance.
+
+        Raises:
+            FileNotFoundException:
+                If the notes file does not exist.
+        """
+        notes_file = File.objects.filter(
+            workspace=workspace,
+            role=FileRole.NOTES,
+        ).order_by("-created_at").first()
+
+        if not notes_file:
+            raise FileNotFoundException("No notes file found for this workspace.")
+            
+        return notes_file
