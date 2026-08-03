@@ -174,6 +174,7 @@ INSTALLED_APPS = [
     'schedule',
     'wallet',
     'workspace',
+    'dashboard',
 ]
 
 # The custom users model that was created would be used for the authentication purposes

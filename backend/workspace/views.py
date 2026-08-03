@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from common.responses import success_response
+from .models import Workspace
 from .serializer import WorkspaceSerializer, UpdateWorkspaceSerializer
 from .service import WorkspaceService
 
@@ -71,3 +72,18 @@ class DeleteWorkspaceView(APIView):
             data=None,
             status_code=status.HTTP_200_OK,
         )
+
+
+class ListUserWorkspacesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        workspace_ids = Workspace.objects.filter(
+            owner=request.user
+        ).values_list("id", flat=True)
+
+        return success_response(
+            message="Workspace IDs retrieved successfully.",
+            data=list(workspace_ids),
+            status_code=status.HTTP_200_OK,
+        )
