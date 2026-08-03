@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 
 import camelot
+import pandas as pd
 
 from processing.dtos import (
     ExtractedOption,
@@ -18,17 +19,24 @@ logger = logging.getLogger("processing")
 class QuestionBankExtractor(BaseExtractor):
     """
     Extracts structured questions from question bank PDFs.
+
+    Uses Camelot lattice flavor for bordered tables, matching
+    the logic from tests/Extraction Files Testing/questions_extraction.py.
     """
 
-    QUESTION_NUMBER_COLUMN = "Sr. No."
-    QUESTION_TEXT_COLUMN = "Question_text"
-    ANSWER_COLUMN = "answer"
-    OPTION_COLUMNS = (
-        "option1 (A)",
-        "option2 (B)",
-        "option3 (C)",
-        "option4 (D)",
-    )
+    # Column names matching the test file's expected structure
+    EXPECTED_COLUMNS = [
+        "sr_no",
+        "unit",
+        "question",
+        "answer",
+        "marks",
+        "previous_year",
+        "option1",
+        "option2",
+        "option3",
+        "option4",
+    ]
 
     def extract(self, file_path: Path) -> ExtractionResult:
         """
@@ -54,9 +62,7 @@ class QuestionBankExtractor(BaseExtractor):
 
         for i, table in enumerate(tables):
             logger.debug("Parsing table %d/%d...", i + 1, len(tables))
-            logger.info("Table %d shape: %s", i + 1, table.df.shape)
-            logger.info("Raw dataframe top rows:\n%s", table.df.head(5).to_string())
-            
+
             try:
                 questions = self._parse_table(table.df)
                 for q in questions:
@@ -71,12 +77,35 @@ class QuestionBankExtractor(BaseExtractor):
         if not result.questions:
             raise ExtractionFailedException("No valid questions found in the document.")
 
-        logger.info("Successfully extracted a total of %d questions from the PDF.", len(result.questions))
+        # Filter out invalid questions (all-NaN options)
+        original_count = len(result.questions)
+        result.questions = [
+            q for q in result.questions
+            if not self._is_invalid_question(q)
+        ]
+        removed_count = original_count - len(result.questions)
+
+        if removed_count > 0:
+            logger.info(
+                "Filtered out %d invalid questions (all-NaN options). Remaining: %d",
+                removed_count,
+                len(result.questions),
+            )
+
+        if not result.questions:
+            raise ExtractionFailedException(
+                "No valid questions found after filtering invalid entries."
+            )
+
+        logger.info(
+            "Successfully extracted a total of %d questions from the PDF.",
+            len(result.questions),
+        )
         return result
 
     def _read_pdf(self, file_path: Path):
         """
-        Read the supplied PDF using Camelot.
+        Read the supplied PDF using Camelot with lattice flavor.
 
         Args:
             file_path: Absolute path to the PDF.
@@ -95,11 +124,11 @@ class QuestionBankExtractor(BaseExtractor):
             )
 
         try:
-            logger.debug("Running Camelot stream extraction on %s", file_path)
+            logger.debug("Running Camelot lattice extraction on %s", file_path)
             return camelot.read_pdf(
                 filepath=str(file_path),
                 pages="all",
-                flavor="stream",
+                flavor="lattice",
             )
         except Exception as exc:
             logger.error("Camelot failed to parse PDF '%s'", file_path.name, exc_info=True)
@@ -118,60 +147,36 @@ class QuestionBankExtractor(BaseExtractor):
             List of extracted questions.
         """
 
-        if dataframe.shape[1] != 10:
-            logger.warning("Skipping table due to unexpected number of columns: %d", dataframe.shape[1])
+        # Remove completely empty rows
+        dataframe = dataframe.replace("", pd.NA)
+        dataframe = dataframe.dropna(how="all")
+        dataframe = dataframe.reset_index(drop=True)
+
+        # Ensure column count matches
+        if len(dataframe.columns) != len(self.EXPECTED_COLUMNS):
+            logger.warning(
+                "Skipping table due to unexpected number of columns: %d (expected %d)",
+                len(dataframe.columns),
+                len(self.EXPECTED_COLUMNS),
+            )
             return []
 
-        # Dynamically locate the header row
-        header_idx = -1
-        for idx, row in dataframe.head(10).iterrows():
-            col0 = self._clean_text(row.iloc[0]).lower()
-            col2 = self._clean_text(row.iloc[2]).lower()
-            if "sr." in col0 or "question_text" in col2:
-                header_idx = idx
-                break
-
-        if header_idx != -1:
-            dataframe = dataframe.iloc[header_idx + 1:].reset_index(drop=True)
-            logger.debug("Discarded %d header rows.", header_idx + 1)
-        else:
-            logger.debug("No textual header found; assuming continuation table.")
-
-        # Map by reliable column position
-        dataframe.columns = [
-            self.QUESTION_NUMBER_COLUMN,
-            "unit_number",
-            self.QUESTION_TEXT_COLUMN,
-            self.ANSWER_COLUMN,
-            "Marks",
-            "Previous Year",
-            self.OPTION_COLUMNS[0],
-            self.OPTION_COLUMNS[1],
-            self.OPTION_COLUMNS[2],
-            self.OPTION_COLUMNS[3],
-        ]
+        dataframe.columns = self.EXPECTED_COLUMNS
 
         questions: list[ExtractedQuestion] = []
 
         for _, row in dataframe.iterrows():
-            question_number = self._clean_text(
-                row[self.QUESTION_NUMBER_COLUMN]
-            )
-
-            if not question_number.isdigit():
+            # Skip header rows accidentally extracted
+            if str(row["sr_no"]).strip().lower() in ["sr. no.", "sr_no", "sr.no.", "sr no"]:
                 continue
 
-            if not self._is_valid_mcq(row):
-                continue
-
-            parsed = self._parse_question(row)
-
-            if parsed is not None:
-                questions.append(parsed)
+            question = self._parse_question(row)
+            if question is not None:
+                questions.append(question)
 
         return questions
 
-    def _parse_question(self, row) -> ExtractedQuestion:
+    def _parse_question(self, row) -> ExtractedQuestion | None:
         """
         Parse a dataframe row into an ExtractedQuestion DTO.
 
@@ -179,35 +184,37 @@ class QuestionBankExtractor(BaseExtractor):
             row: A single dataframe row representing one question.
 
         Returns:
-            ExtractedQuestion.
+            ExtractedQuestion, or None if the row is invalid.
         """
 
-        question_number = int(
-            self._clean_text(
-                row[self.QUESTION_NUMBER_COLUMN]
-            )
-        )
+        question_number_str = self._clean_text(row["sr_no"])
 
-        question_text = self._clean_text(
-            row[self.QUESTION_TEXT_COLUMN]
-        )
+        if not question_number_str.isdigit():
+            return None
 
-        correct_answer = self._clean_text(
-            row[self.ANSWER_COLUMN]
-        ).upper()
+        question_number = int(question_number_str)
+        question_text = self._clean_text(row["question"])
 
-        options = self._parse_options(
-            [
-                row[column]
-                for column in self.OPTION_COLUMNS
-            ]
-        )
+        # Skip invalid rows
+        if not question_text or question_text.lower() == "nan":
+            return None
+
+        correct_answer = self._clean_text(row["answer"]).upper()
+
+        if correct_answer not in {"A", "B", "C", "D"}:
+            return None
+
+        options = self._parse_options([
+            row["option1"],
+            row["option2"],
+            row["option3"],
+            row["option4"],
+        ])
 
         if options is None:
             return None
 
         answer_index = ord(correct_answer) - ord("A")
-
         if 0 <= answer_index < len(options):
             options[answer_index].is_correct = True
 
@@ -217,38 +224,26 @@ class QuestionBankExtractor(BaseExtractor):
             options=options,
         )
 
-    def _is_valid_mcq(self, row) -> bool:
+    def _is_invalid_question(self, question: ExtractedQuestion) -> bool:
         """
-        Determine whether a row represents a valid MCQ.
+        Check if a question is invalid (all options are NaN/empty).
 
-        A row is a valid MCQ if:
-            - The answer column contains exactly one letter from {A, B, C, D}.
-            - All four option columns contain non-empty text (which may be numeric).
-            - The question text is not empty.
+        Ported from tests/Extraction Files Testing/process_questions.py.
 
         Args:
-            row: A single dataframe row.
+            question: ExtractedQuestion to check.
 
         Returns:
-            True if the row is a valid MCQ, False otherwise.
+            True if all options are NaN/empty.
         """
 
-        answer = self._clean_text(row[self.ANSWER_COLUMN]).upper()
-        VALID_ANSWERS = frozenset({"A", "B", "C", "D"})
-        if answer not in VALID_ANSWERS:
-            return False
-            
-        question_text = self._clean_text(row.get(self.QUESTION_TEXT_COLUMN, ""))
-        if not question_text:
-            return False
+        if not question.options:
+            return True
 
-        for column in self.OPTION_COLUMNS:
-            option_text = self._clean_text(row[column])
-
-            if not option_text:
-                return False
-
-        return True
+        return all(
+            str(option.text).strip().lower() == "nan"
+            for option in question.options
+        )
 
     def _parse_options(
         self,
@@ -261,8 +256,7 @@ class QuestionBankExtractor(BaseExtractor):
             raw_options: List of raw option strings.
 
         Returns:
-            List of ExtractedOption objects, or None if the
-            question does not have exactly four valid options.
+            List of ExtractedOption objects, or None if invalid.
         """
 
         if len(raw_options) != 4:
@@ -295,19 +289,13 @@ class QuestionBankExtractor(BaseExtractor):
             text: Raw text extracted from the PDF.
 
         Returns:
-            A cleaned string with normalized whitespace, preserving newlines.
+            A cleaned string with normalized whitespace.
         """
 
         if text is None:
             return ""
 
         text = str(text)
-
-        # Normalize carriage returns to newlines but preserve the newlines
-        text = text.replace("\r\n", "\n")
-        text = text.replace("\r", "\n")
-        
-        # Replace multiple spaces with a single space
-        text = re.sub(r"[ \t]+", " ", text)
-
+        text = text.replace("\n", " ")
+        text = re.sub(r"\s+", " ", text)
         return text.strip()

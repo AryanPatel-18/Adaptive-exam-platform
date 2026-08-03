@@ -1,18 +1,24 @@
 import logging
 from pathlib import Path
 
-logger = logging.getLogger("processing")
-
 import easyocr
+import numpy as np
 
 from processing.ocr.base_engine import BaseOCREngine
 from processing.dtos import OCRResult
 from processing.exceptions import OCRException
 
+logger = logging.getLogger("processing")
+
+MIN_OCR_CONFIDENCE = 0.3
+
 
 class EasyOCREngine(BaseOCREngine):
     """
     OCR engine implementation using EasyOCR.
+
+    Supports both file path and in-memory numpy array input.
+    Includes confidence filtering to discard low-quality detections.
     """
 
     def __init__(
@@ -28,24 +34,35 @@ class EasyOCREngine(BaseOCREngine):
                 Defaults to English.
         """
 
+        self._gpu = self._detect_gpu()
+
         self._reader = easyocr.Reader(
             lang_list=languages or ["en"],
-            gpu=True,
+            gpu=self._gpu,
         )
+
+    @staticmethod
+    def _detect_gpu() -> bool:
+        """Return True if a CUDA-capable GPU is available."""
+        try:
+            import torch
+            return torch.cuda.is_available()
+        except ImportError:
+            return False
 
     def extract_text(
         self,
         image_path: Path,
     ) -> OCRResult:
         """
-        Extract text from a preprocessed image.
+        Extract text from a preprocessed image file.
 
         Args:
             image_path:
                 Path to the preprocessed image.
 
         Returns:
-            OCRResult containing the extracted text.
+            OCRResult containing the extracted text and confidence.
 
         Raises:
             OCRException:
@@ -57,11 +74,39 @@ class EasyOCREngine(BaseOCREngine):
         )
 
         logger.debug("Starting EasyOCR extraction for image: %s", image_path.name)
-        detections = self._read_text(
+        detections = self._read_text_from_path(
             image_path=image_path,
         )
 
         logger.debug("EasyOCR completed. Building result for image: %s", image_path.name)
+        return self._build_result(
+            detections=detections,
+        )
+
+    def extract_text_from_array(
+        self,
+        image: np.ndarray,
+    ) -> OCRResult:
+        """
+        Extract text from an in-memory numpy array.
+
+        Args:
+            image:
+                Numpy array (grayscale or RGB).
+
+        Returns:
+            OCRResult containing the extracted text and confidence.
+
+        Raises:
+            OCRException:
+                If text extraction fails.
+        """
+
+        logger.debug("Starting EasyOCR extraction from numpy array...")
+        detections = self._read_text_from_array(
+            image=image,
+        )
+
         return self._build_result(
             detections=detections,
         )
@@ -107,12 +152,12 @@ class EasyOCREngine(BaseOCREngine):
                 f"Unsupported image format: {image_path.suffix}"
             )
 
-    def _read_text(
+    def _read_text_from_path(
         self,
         image_path: Path,
     ) -> list:
         """
-        Perform OCR using EasyOCR.
+        Perform OCR on an image file.
 
         Args:
             image_path:
@@ -139,26 +184,87 @@ class EasyOCREngine(BaseOCREngine):
                 f"Failed to extract text from image: {image_path}"
             ) from exception
 
+    def _read_text_from_array(
+        self,
+        image: np.ndarray,
+    ) -> list:
+        """
+        Perform OCR on an in-memory numpy array.
+
+        Args:
+            image:
+                Numpy array (grayscale or RGB).
+
+        Returns:
+            Raw EasyOCR output.
+
+        Raises:
+            OCRException:
+                If OCR extraction fails.
+        """
+
+        try:
+            return self._reader.readtext(
+                image,
+                detail=1,
+                paragraph=False,
+            )
+
+        except Exception as exception:
+            logger.error("EasyOCR failed to extract text from array: %s", exception)
+            raise OCRException(
+                "Failed to extract text from image array."
+            ) from exception
+
     def _build_result(
         self,
         detections: list,
     ) -> OCRResult:
         """
-        Convert EasyOCR output into an OCRResult.
+        Convert EasyOCR output into an OCRResult with confidence filtering.
+
+        Detections below MIN_OCR_CONFIDENCE are discarded.
 
         Args:
             detections:
                 Raw output from EasyOCR.
 
         Returns:
-            OCRResult containing the extracted text.
+            OCRResult containing the extracted text and average confidence.
         """
+        logger.debug("Building OCR result from %d detections...", len(detections))
+        texts = []
+        scores = []
 
-        text = "\n".join(
-            detection[1]
-            for detection in detections
+        for detection in detections:
+            if not detection or len(detection) < 3:
+                continue
+
+            text = str(detection[1]).strip()
+            confidence = float(detection[2])
+
+            if not text:
+                continue
+
+            if confidence < MIN_OCR_CONFIDENCE:
+                continue
+
+            texts.append(text)
+            scores.append(confidence)
+
+        if not texts:
+            return OCRResult(text="", confidence=0.0)
+
+        full_text = "\n".join(texts)
+        avg_confidence = sum(scores) / len(scores)
+
+        logger.info(
+            "OCR extracted %d text blocks with average confidence %.2f",
+            len(texts),
+            avg_confidence,
         )
 
         return OCRResult(
-            text=text,
+            text=full_text,
+            confidence=avg_confidence,
         )

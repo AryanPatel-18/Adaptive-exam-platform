@@ -1,13 +1,21 @@
 import logging
 from pathlib import Path
 
-logger = logging.getLogger("processing")
-import numpy as np
 import cv2
+import numpy as np
 
 from processing.exceptions import ImagePreprocessingException
 
+logger = logging.getLogger("processing")
+
+
 class ImagePreprocessor:
+    """
+    Preprocesses images for OCR.
+
+    Uses a lightweight pipeline matching the test file's approach:
+    grayscale conversion + light Gaussian blur.
+    """
 
     def preprocess(
         self,
@@ -36,45 +44,45 @@ class ImagePreprocessor:
             image=image,
         )
 
-        denoised_image = self._denoise(
+        blurred_image = self._gaussian_blur(
             image=grayscale_image,
         )
 
-        thresholded_image = self._threshold(
-            image=denoised_image,
-        )
-
-        # Calculating the text density
-        text_density = self._calculate_text_density(thresholded_image)
-        logger.debug("Image text density: %.4f", text_density)
-
-        # If text is extremely thin (e.g., less than 2% of the image), dilate to thicken it
-        if text_density > 0 and text_density < 0.02:
-            logger.debug("Text density too low, dilating image.")
-            thresholded_image = self._dilate(image=thresholded_image)
-        # If text is unusually thick (e.g., more than 10% of the image), erode to thin it
-        elif text_density > 0.10:
-            logger.debug("Text density too high, eroding image.")
-            thresholded_image = self._erode(image=thresholded_image)
-
         return self._save_image(
-            image=thresholded_image,
+            image=blurred_image,
             output_path=image_path,
         )
 
+    def preprocess_array(
+        self,
+        image_rgb: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Preprocess an in-memory RGB image for OCR.
+
+        Args:
+            image_rgb: RGB numpy array.
+
+        Returns:
+            Preprocessed grayscale numpy array.
+        """
+
+        gray = self._convert_to_grayscale(image=image_rgb)
+        return self._gaussian_blur(image=gray)
+
     def _load_image(self, image_path: Path) -> np.ndarray:
         """
-            Load an image from disk.
+        Load an image from disk.
 
-            Args:
-                image_path: Path to the image.
+        Args:
+            image_path: Path to the image.
 
-            Returns:
-                Loaded image.
+        Returns:
+            Loaded image.
 
-            Raises:
-                ImagePreprocessingException:
-                    If the image cannot be loaded.
+        Raises:
+            ImagePreprocessingException:
+                If the image cannot be loaded.
         """
 
         if not image_path.exists():
@@ -101,7 +109,7 @@ class ImagePreprocessor:
         Convert an image to grayscale.
 
         Args:
-            image: Input image.
+            image: Input image (BGR or RGB).
 
         Returns:
             Grayscale image.
@@ -110,6 +118,10 @@ class ImagePreprocessor:
             ImagePreprocessingException:
                 If grayscale conversion fails.
         """
+
+        # If already grayscale, return as-is
+        if len(image.shape) == 2:
+            return image
 
         try:
             return cv2.cvtColor(
@@ -123,39 +135,23 @@ class ImagePreprocessor:
                 detail="Failed to convert image to grayscale."
             ) from exc
 
-    def _threshold(
+    def _gaussian_blur(
         self,
         image: np.ndarray,
     ) -> np.ndarray:
         """
-        Apply adaptive thresholding to enhance text.
+        Apply a light Gaussian blur to reduce noise.
+
+        Uses a (3, 3) kernel matching the test file's approach.
 
         Args:
             image: Grayscale image.
 
         Returns:
-            Thresholded image.
-
-        Raises:
-            ImagePreprocessingException:
-                If thresholding fails.
+            Blurred image.
         """
 
-        try:
-            return cv2.adaptiveThreshold(
-                src=image,
-                maxValue=255,
-                adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                thresholdType=cv2.THRESH_BINARY,
-                blockSize=11,
-                C=2,
-            )
-
-        except cv2.error as exc:
-            logger.error("cv2 failed to apply threshold: %s", exc)
-            raise ImagePreprocessingException(
-                detail="Failed to apply adaptive threshold."
-            ) from exc
+        return cv2.GaussianBlur(image, (3, 3), 0)
 
     def _save_image(
         self,
@@ -196,70 +192,3 @@ class ImagePreprocessor:
             raise ImagePreprocessingException(
                 detail=f"Failed to save image '{output_path}'."
             ) from exc
-    
-    def _denoise(
-        self,
-        image: np.ndarray,
-    ) -> np.ndarray:
-        """
-        Remove noise from an image while preserving text edges.
-
-        Args:
-            image: Grayscale image.
-
-        Returns:
-            Denoised image.
-
-        Raises:
-            ImagePreprocessingException:
-                If denoising fails.
-        """
-
-        try:
-            return cv2.fastNlMeansDenoising(
-                src=image,
-                h=10,
-                templateWindowSize=7,
-                searchWindowSize=21,
-            )
-
-        except cv2.error as exc:
-            logger.error("cv2 failed to denoise image: %s", exc)
-            raise ImagePreprocessingException(
-                detail="Failed to denoise image."
-            ) from exc
-    
-    def _dilate(
-        self,
-        image: np.ndarray,
-    ) -> np.ndarray:
-
-        kernel = np.ones((2, 2), np.uint8)
-
-        return cv2.dilate(
-            image,
-            kernel,
-            iterations=1,
-        )
-    
-    def _erode(
-        self,
-        image: np.ndarray,
-    ) -> np.ndarray:
-
-        kernel = np.ones((2, 2), np.uint8)
-
-        return cv2.erode(
-            image,
-            kernel,
-            iterations=1,
-        )
-    
-    def _calculate_text_density(
-        self,
-        image: np.ndarray,
-    ) -> float:
-        total_pixels = image.size
-        text_pixels = total_pixels - cv2.countNonZero(image)
-
-        return text_pixels / total_pixels

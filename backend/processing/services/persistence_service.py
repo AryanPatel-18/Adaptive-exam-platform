@@ -27,7 +27,11 @@ class PersistenceService:
         extracted_questions: list[ExtractedQuestion],
     ) -> list[Question]:
         """
-        Persist validated extraction results.
+        Persist validated extraction results including questions,
+        options, and topic assignments.
+
+        Topics and subtopics from Ollama are stored as flattened
+        Topic entries, each linked via QuestionTopic.
 
         Args:
             source_file: File that produced the extracted questions.
@@ -37,19 +41,45 @@ class PersistenceService:
             List of persisted Question instances.
         """
 
-        logger.info("Persisting %d extracted questions for source_file_id=%s", len(extracted_questions), source_file.id)
+        logger.info(
+            "Persisting %d extracted questions for source_file_id=%s",
+            len(extracted_questions),
+            source_file.id,
+        )
 
+        # Create Question records
         questions = PersistenceService._create_questions(
             source_file=source_file,
             extracted_questions=extracted_questions,
         )
         logger.info("Successfully bulk created %d Question records.", len(questions))
 
+        # Create QuestionOption records
         PersistenceService._create_question_options(
             questions=questions,
             extracted_questions=extracted_questions,
         )
         logger.info("Successfully bulk created QuestionOption records.")
+
+        # Create Topic and QuestionTopic records
+        topics = PersistenceService._get_or_create_topics_from_questions(
+            workspace=source_file.workspace,
+            extracted_questions=extracted_questions,
+        )
+
+        PersistenceService._create_question_topics(
+            questions=questions,
+            topics=topics,
+            extracted_questions=extracted_questions,
+        )
+        logger.info("Successfully created QuestionTopic relationships.")
+
+        # Create TopicFile relationships
+        PersistenceService._create_topic_files(
+            source_file=source_file,
+            topics=topics,
+        )
+        logger.info("Successfully created TopicFile relationships.")
 
         return questions
 
@@ -68,7 +98,7 @@ class PersistenceService:
         Returns:
             List of persisted Question instances.
         """
-
+        logger.debug("Creating Question objects...")
         questions = [
             Question(
                 source_file=source_file,
@@ -95,7 +125,7 @@ class PersistenceService:
             questions: Persisted Question model instances.
             extracted_questions: Source ExtractedQuestion DTOs.
         """
-
+        logger.debug("Creating QuestionOption objects...")
         question_options: list[QuestionOption] = []
 
         for question, extracted_question in zip(
@@ -118,6 +148,40 @@ class PersistenceService:
         )
 
     @staticmethod
+    def _get_or_create_topics_from_questions(
+        workspace,
+        extracted_questions: list[ExtractedQuestion],
+    ) -> dict[str, Topic]:
+        """
+        Gather all unique topic names from extracted questions
+        and get-or-create Topic records.
+
+        Args:
+            workspace: Workspace the topics belong to.
+            extracted_questions: Questions with populated topics lists.
+
+        Returns:
+            Mapping of topic name to Topic instance.
+        """
+        logger.debug("Gathering unique topic names from extracted questions...")
+        # Collect all unique topic names
+        all_topic_names = set()
+        for q in extracted_questions:
+            for topic_name in q.topics:
+                if topic_name and topic_name.strip():
+                    all_topic_names.add(topic_name.strip())
+
+        if not all_topic_names:
+            return {}
+
+        topic_list = sorted(list(all_topic_names))
+
+        return PersistenceService._get_or_create_topics(
+            workspace=workspace,
+            topics=topic_list,
+        )
+
+    @staticmethod
     def _create_question_topics(
         questions: list[Question],
         topics: dict[str, Topic],
@@ -131,7 +195,7 @@ class PersistenceService:
             topics: Mapping of topic name to Topic instance.
             extracted_questions: Source ExtractedQuestion DTOs.
         """
-
+        logger.debug("Creating QuestionTopic relationships...")
         question_topics: list[QuestionTopic] = []
 
         for question, extracted_question in zip(
@@ -139,12 +203,14 @@ class PersistenceService:
             extracted_questions,
             strict=True,
         ):
+            seen_topic_ids = set()
             for topic_name in extracted_question.topics:
-                topic = topics.get(topic_name)
+                topic = topics.get(topic_name.strip())
 
-                if topic is None:
+                if topic is None or topic.id in seen_topic_ids:
                     continue
 
+                seen_topic_ids.add(topic.id)
                 question_topics.append(
                     QuestionTopic(
                         question=question,
@@ -169,7 +235,7 @@ class PersistenceService:
             source_file: File from which the topics were extracted.
             topics: Mapping of topic name to Topic instance.
         """
-
+        logger.debug("Creating TopicFile relationships...")
         topic_files = [
             TopicFile(
                 file=source_file,
@@ -182,7 +248,7 @@ class PersistenceService:
             topic_files,
             batch_size=500,
         )
-    
+
     @staticmethod
     @transaction.atomic
     def save_topics(
@@ -231,7 +297,6 @@ class PersistenceService:
 
         return persisted_topics
 
-
     @staticmethod
     def _validate_topics(
         topics: list[str],
@@ -245,7 +310,7 @@ class PersistenceService:
         Raises:
             ValueError: If the topic list is invalid.
         """
-
+        logger.debug("Validating topics list...")
         if not topics:
             raise ValueError(
                 "At least one topic is required."
@@ -260,7 +325,6 @@ class PersistenceService:
             raise ValueError(
                 "Topics cannot be empty."
             )
-
 
     @staticmethod
     def _get_existing_topics(
@@ -277,7 +341,7 @@ class PersistenceService:
         Returns:
             Mapping of topic name to existing Topic instance.
         """
-
+        logger.debug("Fetching existing Topic records for workspace...")
         existing_topics = Topic.objects.filter(
             workspace=workspace,
             name__in=topics,
@@ -303,7 +367,7 @@ class PersistenceService:
         Returns:
             Mapping of topic name to created Topic instance.
         """
-
+        logger.debug("Creating %d new Topic records...", len(topics))
         new_topics = [
             Topic(workspace=workspace, name=topic)
             for topic in topics
@@ -318,7 +382,6 @@ class PersistenceService:
             topic.name: topic
             for topic in created_topics
         }
-
 
     @staticmethod
     def _get_or_create_topics(
@@ -335,7 +398,7 @@ class PersistenceService:
         Returns:
             Mapping of topic name to persisted Topic instance.
         """
-
+        logger.debug("Getting or creating Topic records...")
         existing_topics = PersistenceService._get_existing_topics(
             workspace=workspace,
             topics=topics,

@@ -1,20 +1,40 @@
 import logging
 from pathlib import Path
-import pymupdf
+
+import fitz  # PyMuPDF
+
 from processing.exceptions import PDFConversionException
 
 logger = logging.getLogger("processing")
 
+
 class PDFToImageConverter:
+    """
+    Converts PDF pages to images using PyMuPDF.
+
+    Also exposes direct access to PyMuPDF Page objects for
+    structured text extraction (used by NotesExtractor for
+    direct-text-first strategy).
+    """
+
     IMAGE_EXTENSION = ".png"
-    OCR_DPI = 300
-    RENDER_SCALE = OCR_DPI / 72
+    OCR_ZOOM = 3.0
 
     def convert(
-            self,
-            pdf_path: Path,
-            output_directory: Path,
+        self,
+        pdf_path: Path,
+        output_directory: Path,
     ) -> list[Path]:
+        """
+        Convert all PDF pages to images.
+
+        Args:
+            pdf_path: Path to the PDF file.
+            output_directory: Directory to save page images.
+
+        Returns:
+            List of paths to saved page images.
+        """
 
         logger.debug("Converting PDF '%s' to images...", pdf_path.name)
         document = self._open_pdf(pdf_path)
@@ -43,10 +63,28 @@ class PDFToImageConverter:
         logger.debug("Successfully converted %d pages from PDF.", len(image_paths))
         return image_paths
 
+    def open_document(
+        self,
+        pdf_path: Path,
+    ) -> fitz.Document:
+        """
+        Open a PDF document and return it for direct page access.
+
+        The caller is responsible for closing the document.
+
+        Args:
+            pdf_path: Path to the PDF file.
+
+        Returns:
+            An opened PyMuPDF document.
+        """
+
+        return self._open_pdf(pdf_path)
+
     def _open_pdf(
         self,
         pdf_path: Path,
-    ) -> pymupdf.Document:
+    ) -> fitz.Document:
         """
         Open a PDF document for page rendering.
 
@@ -68,7 +106,7 @@ class PDFToImageConverter:
             )
 
         try:
-            return pymupdf.open(pdf_path)
+            return fitz.open(str(pdf_path))
 
         except Exception as exc:
             logger.error("Failed to open PDF '%s': %s", pdf_path.name, exc)
@@ -78,7 +116,7 @@ class PDFToImageConverter:
 
     def _save_page(
         self,
-        pixmap: pymupdf.Pixmap,
+        pixmap: fitz.Pixmap,
         output_path: Path,
     ) -> Path:
         """
@@ -124,13 +162,15 @@ class PDFToImageConverter:
 
         filename = f"page_{page_number}{self.IMAGE_EXTENSION}"
         return output_directory / filename
-    
+
     def _render_page(
         self,
-        page: pymupdf.Page,
-    ) -> pymupdf.Pixmap:
+        page: fitz.Page,
+    ) -> fitz.Pixmap:
         """
         Render a PDF page into a high-resolution image.
+
+        Uses OCR_ZOOM (3.0x) matching the test file's approach.
 
         Args:
             page: PDF page to render.
@@ -144,9 +184,9 @@ class PDFToImageConverter:
         """
 
         try:
-            matrix = pymupdf.Matrix(
-                self.RENDER_SCALE,
-                self.RENDER_SCALE,
+            matrix = fitz.Matrix(
+                self.OCR_ZOOM,
+                self.OCR_ZOOM,
             )
 
             return page.get_pixmap(
