@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
 import './Auth.css';
 
 export default function Auth() {
+  const navigate = useNavigate();
+  const { login, register } = useAuth();
+  
   const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
@@ -25,6 +30,9 @@ export default function Auth() {
     // Clear errors for that field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (errors.form) {
+      setErrors((prev) => ({ ...prev, form: '' }));
     }
   };
 
@@ -65,20 +73,57 @@ export default function Auth() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsLoading(true);
-    // Simulate backend response
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
       if (isSignUp) {
+        // Register API expects: username, email, password, confirm_password
+        await register({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          confirm_password: formData.confirmPassword
+        });
         setSuccessState('signup');
       } else {
+        // Login API expects: username, password (the form reuses 'email' field for username input)
+        await login({
+          username: formData.email,
+          password: formData.password,
+        });
         setSuccessState('login');
       }
-    }, 1200);
+    } catch (err) {
+      // Handle Django Rest Framework 400 Validation Errors
+      // The backend's custom exception handler returns: 
+      // { success: false, message: "...", code: "...", errors: { field: ["error"] } }
+      if (err.response && err.response.data) {
+        const data = err.response.data;
+        
+        if (data.errors && typeof data.errors === 'object' && Object.keys(data.errors).length > 0) {
+          // Map backend field errors to frontend state
+          const backendErrors = {};
+          Object.keys(data.errors).forEach(key => {
+            const errorText = Array.isArray(data.errors[key]) ? data.errors[key][0] : data.errors[key];
+            if (key === 'non_field_errors') backendErrors.form = errorText;
+            else if (key === 'confirm_password') backendErrors.confirmPassword = errorText;
+            else backendErrors[key] = errorText;
+          });
+          setErrors(backendErrors);
+        } else if (data.message || data.detail) {
+          setErrors({ form: data.message || data.detail });
+        } else {
+          setErrors({ form: 'Authentication failed. Please check your network and try again.' });
+        }
+      } else {
+        setErrors({ form: 'Authentication failed. Please check your network and try again.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleToggleMode = (signUpMode) => {
@@ -93,15 +138,16 @@ export default function Auth() {
     });
   };
 
-  const resetAuth = () => {
-    setSuccessState(null);
-    setFormData({
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      rememberMe: false
-    });
+  const handleProceed = () => {
+    if (successState === 'login') {
+      navigate('/dashboard');
+    } else if (successState === 'signup') {
+      // Registration successful, but requires login to get tokens. 
+      // Switch to sign in mode automatically so they can log in.
+      setSuccessState(null);
+      setIsSignUp(false);
+      setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+    }
   };
 
   // SVG icons
@@ -138,7 +184,7 @@ export default function Auth() {
                   : `Good to see you again, ${formData.email.split('@')[0] || 'there'}! Prepare to dive into your interactive studies.`
                 }
               </p>
-              <button className="auth-success-btn" onClick={resetAuth}>
+              <button className="auth-success-btn" onClick={handleProceed}>
                 Proceed to Dashboard
               </button>
             </div>

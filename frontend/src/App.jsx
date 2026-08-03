@@ -1,30 +1,38 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './routes/ProtectedRoute';
+import PublicRoute from './routes/PublicRoute';
+import Auth from './components/auth/Auth';
 import Dashboard from './components/home/Dashboard';
-// import Auth from './components/auth/Auth'; // ← swap in when routing is wired up
 
 /**
  * Top-level app shell.
  *
- * Until a router is added, App renders the Dashboard directly with
- * placeholder/empty props.  Replace these with real data from your
- * API layer once the backend is connected.
+ * Defines the application's route structure using ProtectedRoute and
+ * PublicRoute as layout wrappers that enforce authentication rules.
+ *
+ * Route structure:
+ *   /login, /register  → PublicRoute  → Auth component
+ *   /dashboard          → ProtectedRoute → Dashboard component
+ *   /                   → redirects to /dashboard
  */
 function App() {
-  // ─── Placeholder props (replace with API data) ──────────────────────────
-  const dashboardProps = {
-    username:     'Student',      // e.g. from auth context: user.displayName
-    stats:        {},             // { workspaces, quizzes, accuracy, studyTime, questions }
-    workspaces:   [],             // Array of workspace objects – slice(0,3) is applied inside
-    quizzes:      [],             // Array of quiz objects    – slice(0,3) is applied inside
-    streak:       { count: 0, daysCompleted: [false,false,false,false,false,false,false] },
-    revisions:    [],             // Array of { id, subject, timing, timingColor }
-    weekSummary:  { avgAccuracy: '--', studyTime: '--' },
-    weeklyGraphImage: '',
-  };
-  // ────────────────────────────────────────────────────────────────────────
+  return (
+    <Routes>
+      {/* ─── Public Routes (redirect to dashboard if already logged in) ─── */}
+      <Route element={<PublicRoute />}>
+        <Route path="/login" element={<Auth />} />
+        <Route path="/register" element={<Auth />} />
+      </Route>
 
-  return <Dashboard {...dashboardProps} />;
-  // return <Auth />;
+      {/* ─── Protected Routes (redirect to login if not authenticated) ──── */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Route>
+
+      {/* ─── Fallback: redirect unknown paths to dashboard ──────────────── */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
 }
 
 export default App;
-

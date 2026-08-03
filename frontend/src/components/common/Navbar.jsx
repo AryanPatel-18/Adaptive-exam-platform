@@ -28,6 +28,12 @@ const ChevronDownIcon = () => (
   </svg>
 );
 
+const LogOutIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
 // ── Nav link definitions ──────────────────────────────────────────────────────
 const NAV_LINKS = [
   { id: "home", label: "Home" },
@@ -57,6 +63,7 @@ const NAV_LINKS = [
  *  - onCreateWorkspace {fn}    – called when "+ Create Workspace" is clicked
  *  - onNotifications {fn}      – called when bell is clicked
  *  - onProfile {fn}            – called when avatar is clicked
+ *  - onLogout {fn}             – called when logout is clicked
  *  - notificationCount {number}– badge count; hide badge when 0
  *  - searchValue {string}      – controlled search input value
  *  - onSearchChange {fn(val)}  – called on search input change
@@ -67,6 +74,7 @@ export default function Navbar({
   onCreateWorkspace = () => { },
   onNotifications = () => { },
   onProfile = () => { },
+  onLogout = () => { },
   notificationCount = 0,
   searchValue = '',
   onSearchChange = () => { },
@@ -94,15 +102,15 @@ export default function Navbar({
             {hasDropdown && (
               <div className="dropdown-menu">
                 {dropdown.map(item => (
-                  <>
+                  <React.Fragment key={item.id}>
                   <button
-                    key={item.id}
                     className="dropdown-item"
                     onClick={() => console.log(item.id)}
                   >
                     {item.label}
                   </button>
-                <hr className="dropdown-divider" /></>
+                <hr className="dropdown-divider" />
+                </React.Fragment>
                 ))}
               </div>
             )}
@@ -157,6 +165,16 @@ export default function Navbar({
           onClick={onProfile}
         >
           <UserIcon />
+        </button>
+
+        <span className='space'></span>
+        <button
+          id="nav-logout-btn"
+          className="nav-icon-btn"
+          aria-label="Log Out"
+          onClick={onLogout}
+        >
+          <LogOutIcon />
         </button>
       </div>
     </header>
