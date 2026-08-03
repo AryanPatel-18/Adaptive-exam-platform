@@ -19,3 +19,8 @@ django-redis>=6.0,<7.0
 # Image Support
 # ==========================================
 Pillow>=11.3,<12.0
+camelot-py
+PyMuPDF>=1.26,<1.27
+numpy
+opencv-python>=4.8.0
+easyocr
