@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/files/',include("files.urls")),
     path('api/processing/',include("processing.urls")),
     path('api/quiz/',include("quiz.urls")),
+    path('api/schedule/',include("schedule.urls")),
 ]
