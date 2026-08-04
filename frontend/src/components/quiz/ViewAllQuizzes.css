@@ -1,0 +1,465 @@
+/* ============================================================
+   ViewAllQuizzes.css – styles for the full quiz listing page
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+.vaq-root {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.vaq-main {
+  align-items: start;
+}
+
+/* ── Page Header ─────────────────────────────────────────── */
+.vaq-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.vaq-page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.vaq-page-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #059669, #047857);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.35);
+  flex-shrink: 0;
+}
+
+.vaq-page-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vaq-page-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e1b4b;
+  letter-spacing: -0.5px;
+}
+
+.vaq-page-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* Controls row */
+.vaq-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* View toggle */
+.vaq-view-toggle {
+  display: flex;
+  border: 1.5px solid rgba(124, 58, 237, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vaq-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.18s;
+}
+
+.vaq-view-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.vaq-view-btn:first-child {
+  border-right: 1.5px solid rgba(124, 58, 237, 0.1);
+}
+
+.vaq-view-btn.active {
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+}
+
+.vaq-view-btn:hover:not(.active) {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+/* Inherit filter + sort styles from ViewAllWorkspaces via Dashboard.css */
+.va-filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.va-filter-btn {
+  padding: 7px 16px;
+  border-radius: 99px;
+  border: 1.5px solid rgba(124, 58, 237, 0.15);
+  background: white;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.va-filter-btn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.04);
+}
+
+.va-filter-btn.active {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.25);
+}
+
+.va-sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.va-sort-label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.va-sort-select {
+  appearance: none;
+  background: white;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  padding: 8px 32px 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e1b4b;
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.va-sort-select:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* ── Grid view ───────────────────────────────────────────── */
+.vaq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 20px;
+}
+
+.vaq-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.vaq-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 16px 40px rgba(124, 58, 237, 0.14);
+}
+
+/* Top row: ring + badge */
+.vaq-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.vaq-ring {
+  width: 64px;
+  height: 64px;
+}
+
+.vaq-score-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.3px;
+}
+
+.vaq-card-icon {
+  display: flex;
+  color: #9ca3af;
+}
+
+.vaq-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.vaq-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e1b4b;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vaq-card-workspace {
+  font-size: 12px;
+  color: #7c3aed;
+  font-weight: 500;
+}
+
+.vaq-meta-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vaq-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  background: rgba(5, 150, 105, 0.07);
+  font-size: 11px;
+  font-weight: 500;
+  color: #065f46;
+}
+
+.vaq-meta-pill svg {
+  width: 11px;
+  height: 11px;
+}
+
+.vaq-card-date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.vaq-retake-btn {
+  margin-top: auto;
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(124, 58, 237, 0.25);
+  background: rgba(124, 58, 237, 0.04);
+  color: #7c3aed;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vaq-retake-btn:hover {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: #7c3aed;
+  transform: translateY(-1px);
+}
+
+/* ── List view ───────────────────────────────────────────── */
+.vaq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vaq-list-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vaq-list-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.1);
+}
+
+.vaq-list-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.vaq-list-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.vaq-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.vaq-list-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e1b4b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vaq-list-meta {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.vaq-list-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 70px;
+}
+
+.vaq-list-pct {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.vaq-list-fraction {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.vaq-list-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.vaq-list-retake-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(124, 58, 237, 0.2);
+  background: rgba(124, 58, 237, 0.04);
+  color: #7c3aed;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.vaq-list-retake-btn:hover {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: #7c3aed;
+}
+
+/* ── Empty state (shared with workspace via .va-) ────────── */
+.va-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.va-empty-icon {
+  display: flex;
+  color: #c4b5fd;
+}
+
+.va-empty-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.va-empty-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.va-empty-sub {
+  font-size: 14px;
+  color: #9ca3af;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .vaq-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .vaq-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .vaq-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .vaq-list-badge,
+  .vaq-list-retake-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .vaq-grid {
+    grid-template-columns: 1fr;
+  }
+}
