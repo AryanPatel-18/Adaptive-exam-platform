@@ -327,3 +327,80 @@
     max-width: 140px;
   }
 }
+
+.ws-upload-box{
+    height:170px;
+    border:2px dashed rgba(124,58,237,.18);
+    border-radius:16px;
+    background:#faf8ff;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.ws-upload-box:hover{
+    border-color:#7c3aed;
+    background:#f5f3ff;
+}
+
+.ws-upload-box svg{
+    width:42px;
+    height:42px;
+    color:#c4b5fd;
+}
+
+.ws-upload-box span{
+    font-size:15px;
+    font-weight:600;
+    color:#5b21b6;
+}
+
+.ws-selected-files{
+    margin-top:16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-height:180px;
+    overflow-y:auto;
+}
+
+.ws-selected-file{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    border-radius:10px;
+    border:1px solid rgba(124,58,237,.12);
+    background:#faf8ff;
+}
+
+.ws-selected-file svg{
+    width:20px;
+    height:20px;
+    color:#7c3aed;
+}
+
+.ws-selected-file span{
+    flex:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:14px;
+    color:#374151;
+}
+
+.ws-selected-file button{
+    background:none;
+    border:none;
+    color:#9ca3af;
+    cursor:pointer;
+    font-size:18px;
+}
+
+.ws-selected-file button:hover{
+    color:#dc2626;
+}

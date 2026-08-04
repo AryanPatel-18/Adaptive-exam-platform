@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Navbar from '../common/Navbar';
+import DashboardSidebar from '../common/DashboardSidebar';
+import {WorkspaceIcon,QuizeIcon,TrendingIcon,ClockIcon,TargetIcon,FlameIcon,CalenderIcon,DocumentIcon,ChevronRightIcon,InboxIcon} from '../common/svg'
 import './Dashboard.css';
 
 // ── SVG icon helpers (dashboard-specific) ─────────────────────────────────────
@@ -66,11 +68,11 @@ const Icon = {
 
 // ── Stat card configuration (no values – values come from props) ──────────────
 const STAT_CONFIG = [
-  { id: 'workspaces', label: 'Workspaces', sub: 'Active', icon: Icon.workspace, color: '#7c3aed' },
-  { id: 'quizzes', label: 'Quizzes Taken', sub: 'This Month', icon: Icon.quiz, color: '#059669' },
-  { id: 'accuracy', label: 'Avg. Accuracy', sub: 'This Month', icon: Icon.target, color: '#d97706' },
-  { id: 'studyTime', label: 'Total Study Time', sub: 'This Month', icon: Icon.clock, color: '#2563eb' },
-  { id: 'questions', label: 'Questions Solved', sub: 'This Month', icon: Icon.trending, color: '#dc2626' },
+  { id: 'workspaces', label: 'Workspaces', sub: 'Active', icon: <WorkspaceIcon/>, color: '#7c3aed' },
+  { id: 'quizzes', label: 'Quizzes Taken', sub: 'This Month', icon: <QuizeIcon/>, color: '#059669' },
+  { id: 'accuracy', label: 'Avg. Accuracy', sub: 'This Month', icon: <TargetIcon/>, color: '#d97706' },
+  { id: 'studyTime', label: 'Total Study Time', sub: 'This Month', icon: <ClockIcon/>, color: '#2563eb' },
+  { id: 'questions', label: 'Questions Solved', sub: 'This Month', icon: <TrendingIcon/>, color: '#dc2626' },
 ];
 
 const DAYS_OF_WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -128,8 +130,26 @@ export default function Dashboard({
   streak = { count: 0, daysCompleted: [false, false, false, false, false, false, false] },
   revisions = [],
   weekSummary = { avgAccuracy: '--', studyTime: '--' },
-  weeklyGraphImage = ''
+  weeklyGraphImage = '',
+  onViewAllWorkspaces = () => {},
+  onViewAllQuizzes = () => {},
 }) {
+    workspaces = [
+    {
+      id: 1,
+      name: "Operating Systems Unit 1",
+      meta: "Completed 2 hours ago • 15 Questions",
+      score: 93,
+      fraction: "14/15"
+    },
+    {
+      id: 2,
+      name: "DBMS Normalization",
+      meta: "Completed Yesterday • 20 Questions",
+      score: 80,
+      fraction: "16/20"
+    }
+  ]
   const [activePage, setActivePage] = useState('dashboard');
   const [searchValue, setSearchValue] = useState('');
 
@@ -201,9 +221,9 @@ export default function Dashboard({
             {/* Most Recent Workspaces */}
             <section className="db-list-card db-card" id="db-workspaces-card" aria-label="Most recent workspaces">
               <div className="db-list-header">
-                <span className="db-list-header-icon">{Icon.workspace}</span>
+                <span className="db-list-header-icon"><WorkspaceIcon/></span>
                 <h2 className="db-list-title">Most Recent Workspaces</h2>
-                <button className="db-view-all-btn" id="db-workspaces-view-all">View All</button>
+                <button className="db-view-all-btn" id="db-workspaces-view-all" onClick={onViewAllWorkspaces}>View All</button>
               </div>
 
               <ul className="db-list" role="list">
@@ -216,7 +236,7 @@ export default function Dashboard({
                         style={{ background: ws.iconBg ?? '#7c3aed' }}
                         aria-hidden="true"
                       >
-                        {Icon.workspace}
+                        <WorkspaceIcon/>
                       </div>
 
                       <div className="db-item-info">
@@ -233,7 +253,7 @@ export default function Dashboard({
                     </li>
                   ))
                 ) : (
-                  <EmptyState icon={Icon.inbox} message="No workspaces yet. Create one to get started!" />
+                  <EmptyState icon={<InboxIcon/>} message="No workspaces yet. Create one to get started!" />
                 )}
               </ul>
             </section>
@@ -241,9 +261,9 @@ export default function Dashboard({
             {/* Recent Quizzes */}
             <section className="db-list-card db-card" id="db-quizzes-card" aria-label="Recent quizzes">
               <div className="db-list-header">
-                <span className="db-list-header-icon">{Icon.quiz}</span>
+                <span className="db-list-header-icon"><QuizeIcon/></span>
                 <h2 className="db-list-title">Recent Quizzes</h2>
-                <button className="db-view-all-btn" id="db-quizzes-view-all">View All</button>
+                <button className="db-view-all-btn" id="db-quizzes-view-all" onClick={onViewAllQuizzes}>View All</button>
               </div>
 
               <ul className="db-list" role="list">
@@ -251,7 +271,7 @@ export default function Dashboard({
                   recentQuizzes.map((qz, idx) => (
                     <li key={qz.id ?? idx} className="db-list-item" id={`quiz-item-${qz.id ?? idx}`}>
                       <div className="db-item-icon db-quiz-icon-bg" aria-hidden="true">
-                        {Icon.document}
+                        <DocumentIcon/>
                       </div>
 
                       <div className="db-item-info">
@@ -271,7 +291,7 @@ export default function Dashboard({
                     </li>
                   ))
                 ) : (
-                  <EmptyState icon={Icon.inbox} message="No quizzes taken yet. Start a quiz to see your results here!" />
+                  <EmptyState icon={<InboxIcon/>}message="No quizzes taken yet. Start a quiz to see your results here!" />
                 )}
               </ul>
             </section>
@@ -279,99 +299,12 @@ export default function Dashboard({
         </div>
 
         {/* ══ Sidebar ══ */}
-        <aside className="db-sidebar">
-
-          {/* Study Streak */}
-          <section className="db-card db-sidebar-card" id="db-streak-card" aria-label="Study streak">
-            <div className="db-streak-header">
-              <span className="db-flame" aria-hidden="true">{Icon.flame}</span>
-              <h2 className="db-sidebar-title">Study Streak</h2>
-            </div>
-            <div className="db-streak-count">
-              <span className="db-streak-num">{streak.count}</span>
-              <span className="db-streak-unit">days</span>
-            </div>
-            <p className="db-streak-tagline">
-              {streak.count > 0 ? "You're on fire! Keep it up!" : 'Start studying to build your streak!'}
-            </p>
-            <div className="db-streak-days" aria-label="Days studied this week">
-              {DAYS_OF_WEEK.map((d, i) => {
-                const done = streak.daysCompleted?.[i] ?? false;
-                return (
-                  <div key={i} className="db-streak-day">
-                    <span className="db-day-lbl">{d}</span>
-                    <div className={`db-day-dot ${done ? 'done' : ''}`} aria-label={done ? 'Studied' : 'Not studied'}>
-                      {done && (
-                        <svg viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                          <polyline points="2,5 4.5,7.5 8,3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Upcoming Revision */}
-          <section className="db-card db-sidebar-card" id="db-revision-card" aria-label="Upcoming revisions">
-            <div className="db-sidebar-hdr">
-              <span className="db-list-header-icon" aria-hidden="true">{Icon.calendar}</span>
-              <h2 className="db-sidebar-title">Upcoming Revision</h2>
-            </div>
-            <ul className="db-revision-list" role="list">
-              {revisions.length > 0 ? (
-                revisions.map((r, idx) => (
-                  <li key={r.id ?? idx} className="db-revision-item" id={`revision-${r.id ?? idx}`}>
-                    <span className="db-revision-subject">{r.subject}</span>
-                    <span className="db-revision-timing" style={{ color: r.timingColor ?? '#6b7280' }}>
-                      {r.timing}
-                    </span>
-                  </li>
-                ))
-              ) : (
-                <li className="db-empty-state db-revision-empty">
-                  <p className="db-empty-msg">No upcoming revisions scheduled.</p>
-                </li>
-              )}
-            </ul>
-            <button className="db-study-plan-btn" id="db-view-study-plan-btn">
-              View Study Plan
-              <span className="db-btn-chevron" aria-hidden="true">{Icon.chevronRight}</span>
-            </button>
-          </section>
-
-          {/* This Week Overview */}
-          <section className="db-card db-sidebar-card" id="db-week-overview-card" aria-label="This week overview">
-            <h2 className="db-sidebar-title">This Week Overview</h2>
-            <div className="db-week-chart-wrap">
-              <img
-                src={weeklyGraphImage}
-                alt="Weekly study overview"
-                className="db-week-chart-image"
-                loading="lazy"
-                draggable={false}
-              />
-
-              <div className="db-week-x-labels">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-                  <span key={d}>{d}</span>
-                ))}
-              </div>
-            </div>
-            <div className="db-week-stats">
-              <div className="db-week-stat">
-                <p className="db-week-val">{weekSummary.avgAccuracy}</p>
-                <p className="db-week-lbl">Avg. Accuracy</p>
-              </div>
-              <div className="db-week-stat">
-                <p className="db-week-val">{weekSummary.studyTime}</p>
-                <p className="db-week-lbl">Study Time</p>
-              </div>
-            </div>
-          </section>
-
-        </aside>
+        <DashboardSidebar
+          streak={streak}
+          revisions={revisions}
+          weekSummary={weekSummary}
+          weeklyGraphImage={weeklyGraphImage}
+        />
       </main>
     </div>
   );

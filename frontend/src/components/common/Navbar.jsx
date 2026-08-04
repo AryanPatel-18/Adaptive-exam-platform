@@ -1,32 +1,6 @@
 import React, { useState } from 'react';
 import './Navbar.css';
-
-// ── SVG icons ─────────────────────────────────────────────────────────────────
-const SearchIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-  </svg>
-);
-const BellIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
-);
-const PlusIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-const UserIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-  </svg>
-);
-const ChevronDownIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
+import { SearchIcon, BellIcon, PlusIcon, UserIcon, ChevronDownIcon, UploadIcon } from './svg';
 
 // ── Nav link definitions ──────────────────────────────────────────────────────
 const NAV_LINKS = [
@@ -71,6 +45,10 @@ export default function Navbar({
   searchValue = '',
   onSearchChange = () => { },
 }) {
+  // Create Workspace Modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceFiles, setWorkspaceFiles] = useState([]);
   return (
     <header className="nav-root ">
       {/* Left – nav links */}
@@ -95,14 +73,14 @@ export default function Navbar({
               <div className="dropdown-menu">
                 {dropdown.map(item => (
                   <>
-                  <button
-                    key={item.id}
-                    className="dropdown-item"
-                    onClick={() => console.log(item.id)}
-                  >
-                    {item.label}
-                  </button>
-                <hr className="dropdown-divider" /></>
+                    <button
+                      key={item.id}
+                      className="dropdown-item"
+                      onClick={() => console.log(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                    <hr className="dropdown-divider" /></>
                 ))}
               </div>
             )}
@@ -130,7 +108,7 @@ export default function Navbar({
         <button
           id="nav-create-workspace-btn"
           className="nav-create-btn"
-          onClick={onCreateWorkspace}
+          onClick={() => setShowCreateModal(true)}
         >
           <span className="nav-create-icon"><PlusIcon /></span>
           Create Workspace
@@ -159,6 +137,107 @@ export default function Navbar({
           <UserIcon />
         </button>
       </div>
+      {showCreateModal && (
+        <div
+          className="ws-modal-overlay"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="ws-modal-card db-card ws-upload-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="ws-modal-title">
+              Create Workspace
+            </h2>
+
+            <input
+              className="ws-modal-input"
+              placeholder="Workspace Name"
+              value={workspaceName}
+              onChange={(e) => setWorkspaceName(e.target.value)}
+            />
+
+            <div className="ws-cards-grid ws-upload-grid">
+
+              <label className="ws-upload-box">
+
+                <input
+                  hidden
+                  multiple
+                  type="file"
+                  onChange={(e) =>
+                    setWorkspaceFiles(prev => [
+                      ...prev,
+                      ...Array.from(e.target.files)
+                    ])
+                  }
+                />
+
+                <UploadIcon />
+
+                <span>Click to upload files</span>
+
+              </label>
+              <div className="ws-selected-files">
+
+                {workspaceFiles.map((file, index) => (
+
+                  <div
+                    key={index}
+                    className="ws-selected-file"
+                  >
+
+                    <UploadIcon />
+
+                    <span>{file.name}</span>
+
+                    <button
+                      onClick={() =>
+                        setWorkspaceFiles(prev =>
+                          prev.filter((_, i) => i !== index)
+                        )
+                      }>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ws-modal-actions">
+
+              <button
+                className="ws-action-btn ws-btn-outline"
+                onClick={() => setShowCreateModal(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="ws-action-btn ws-btn-primary"
+                onClick={() => {
+                  console.log({
+                    workspace: workspaceName,
+                    files: workspaceFiles
+                  });
+
+                  // TODO:
+                  // Create workspace
+                  // Redirect to workspace page
+
+                  setWorkspaceName("");
+                  setWorkspaceFiles([]);
+                  setShowCreateModal(false);
+                }}
+              >
+                Create Workspace
+              </button>
+
+            </div>
+
+          </div>
+        </div>
+      )}
     </header>
   );
 }
