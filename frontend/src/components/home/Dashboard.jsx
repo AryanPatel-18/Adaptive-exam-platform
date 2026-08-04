@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
 import Navbar from '../common/Navbar';
 import DashboardSidebar from '../common/DashboardSidebar';
 import {WorkspaceIcon,QuizeIcon,TrendingIcon,ClockIcon,TargetIcon,FlameIcon,CalenderIcon,DocumentIcon,ChevronRightIcon,InboxIcon} from '../common/svg'
@@ -152,11 +154,20 @@ export default function Dashboard({
   ]
   const [activePage, setActivePage] = useState('dashboard');
   const [searchValue, setSearchValue] = useState('');
+  
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   // Greeting based on time of day
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const greetEmoji = hour < 12 ? '🌤️' : hour < 17 ? '☀️' : '🌙';
+  const displayUsername = user?.username || username;
 
   // Only ever show the 3 most recent items
   const recentWorkspaces = workspaces.slice(0, 3);
@@ -172,6 +183,7 @@ export default function Dashboard({
         notificationCount={0}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
+        onLogout={handleLogout}
       />
 
       {/* ── Page body ── */}
@@ -184,7 +196,7 @@ export default function Dashboard({
           <section className="db-hero-card db-card" aria-label="Welcome banner">
             <div className="db-hero-text">
               <h1 className="db-greeting">
-                {greeting}, {username}! <span aria-hidden="true">{greetEmoji}</span>
+                {greeting}, {displayUsername}! <span aria-hidden="true">{greetEmoji}</span>
               </h1>
               <p className="db-greeting-sub">
                 Keep going! Every question you solve is a step closer to your goals.

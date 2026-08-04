@@ -34,6 +34,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5000",
     "http://127.0.0.1:5500",
     "http://localhost:5500",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
 ]
 
 # Logging
@@ -172,6 +174,7 @@ INSTALLED_APPS = [
     'schedule',
     'wallet',
     'workspace',
+    'dashboard',
 ]
 
 # The custom users model that was created would be used for the authentication purposes

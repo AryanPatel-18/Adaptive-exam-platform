@@ -14,6 +14,9 @@ from files.models import File
 from processing.services.processing_service import ProcessingService
 from workspace.exceptions import WorkspaceNotFoundException
 from workspace.models import Workspace
+from common.choices import ProcessingStatus, ProcessingStage
+from processing.models import ProcessingJob
+from django.utils import timezone
 
 class ProcessWorkspaceView(APIView):
     """
@@ -48,19 +51,40 @@ class ProcessWorkspaceView(APIView):
             workspace=workspace,
         )
 
-        logger.info("Question bank processing started for file_id=%s", question_bank_file.id)
-        ProcessingService.process(
+        logger.info("Creating ProcessingJob for workspace_id=%s", workspace.id)
+        job = ProcessingJob.objects.create(
             workspace=workspace,
-            source_file=question_bank_file,
+            status=ProcessingStatus.RUNNING,
+            stage=ProcessingStage.INITIALIZED,
         )
 
-        logger.info("Notes processing started for file_id=%s", notes_file.id)
-        ProcessingService.process_notes(
-            workspace=workspace,
-            source_file=notes_file,
-        )
+        try:
+            logger.info("Question bank processing started for file_id=%s", question_bank_file.id)
+            ProcessingService.process(
+                workspace=workspace,
+                source_file=question_bank_file,
+                job=job,
+            )
 
-        logger.info("Processing completed successfully for workspace_id=%s", workspace.id)
+            logger.info("Notes processing started for file_id=%s", notes_file.id)
+            ProcessingService.process_notes(
+                workspace=workspace,
+                source_file=notes_file,
+                job=job,
+            )
+
+            job.status = ProcessingStatus.COMPLETED
+            job.stage = ProcessingStage.FINISHED
+            job.completed_at = timezone.now()
+            job.save()
+            
+            logger.info("Processing completed successfully for workspace_id=%s", workspace.id)
+        except Exception as exc:
+            job.status = ProcessingStatus.FAILED
+            job.failure_reason = str(exc)
+            job.save()
+            logger.error("Processing failed for workspace_id=%s: %s", workspace.id, exc)
+            raise
 
         return Response(
             {
