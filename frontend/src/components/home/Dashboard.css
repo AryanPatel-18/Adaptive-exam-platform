@@ -14,7 +14,8 @@
 
 .db-root {
   font-family: 'Inter', system-ui, sans-serif;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #f5f4ff;
   color: #1e1b4b;
   display: flex;
@@ -30,14 +31,14 @@
   box-shadow: 0 2px 12px rgba(124, 58, 237, 0.06);
   padding: 20px;
 
-  transform: scale(1);
+  transform: translateY(0);
   transition:
     transform 0.22s ease,
     box-shadow 0.22s ease;
 }
 
 .db-card:hover {
-  transform: scale(1.03);
+  transform: translateY(-4px);
   box-shadow: 0 10px 28px rgba(124, 58, 237, 0.12);
 }
 
@@ -50,7 +51,8 @@
   gap: 20px;
   padding: 24px 28px;
   flex: 1;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .db-col-main {
@@ -58,6 +60,7 @@
   flex-direction: column;
   gap: 20px;
   min-width: 0;
+  overflow-y: auto;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -227,10 +230,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+  flex: 1;
+  min-height: 0;
 }
 
 .db-list-card {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* List header */
@@ -239,6 +246,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .db-list-header-icon {
@@ -280,6 +288,9 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .db-list-item {
@@ -419,7 +430,9 @@
 .db-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .db-sidebar-card {

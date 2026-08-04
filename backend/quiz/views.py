@@ -131,3 +131,24 @@ class QuizResultAPIView(APIView):
             QuizResultSerializer(attempt).data,
             status=status.HTTP_200_OK,
         )
+
+
+class UserQuizAttemptsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from quiz.models import QuizAttempt
+        attempts = QuizAttempt.objects.filter(
+            user=request.user
+        ).select_related('quiz').order_by('created_at')
+        
+        data = [
+            {
+                "id": str(attempt.id),
+                "created_at": attempt.created_at.isoformat(),
+                "number_of_questions": attempt.quiz.total_questions,
+            }
+            for attempt in attempts
+        ]
+        
+        return Response(data, status=status.HTTP_200_OK)

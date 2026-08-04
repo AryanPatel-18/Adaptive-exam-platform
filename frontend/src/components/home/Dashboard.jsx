@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import Navbar from '../common/Navbar';
@@ -86,6 +86,15 @@ function scoreColor(pct) {
   return '#dc2626';
 }
 
+// ── Helper: format study time ──────────────────────────────────────────────────
+function formatStudyTime(seconds) {
+  if (!seconds) return '0m';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
 // ── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ value = 0 }) {
   const color = value >= 75 ? '#059669' : value >= 50 ? '#2563eb' : '#d97706';
@@ -126,11 +135,6 @@ function EmptyState({ icon, message }) {
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Dashboard({
   username = 'Student',
-  stats = {},
-  workspaces = [],
-  quizzes = [],
-  streak = { count: 0, daysCompleted: [false, false, false, false, false, false, false] },
-  revisions = [],
   weekSummary = { avgAccuracy: '--', studyTime: '--' },
   weeklyGraphImage = '',
   onViewAllWorkspaces = () => {},
@@ -154,9 +158,41 @@ export default function Dashboard({
   ]
   const [activePage, setActivePage] = useState('dashboard');
   const [searchValue, setSearchValue] = useState('');
+  const [dashboardData, setDashboardData] = useState(null);
+  const [graphUrl, setGraphUrl] = useState('');
   
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await api.get('/api/dashboard/stats/');
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      }
+    };
+    
+    const fetchGraph = async () => {
+      try {
+        const response = await api.get('/api/dashboard/weekly-graph/', {
+          responseType: 'blob'
+        });
+        const url = URL.createObjectURL(response.data);
+        setGraphUrl(url);
+      } catch (err) {
+        console.error("Failed to fetch graph", err);
+      }
+    };
+
+    fetchDashboardStats();
+    fetchGraph();
+    
+    return () => {
+      if (graphUrl) URL.revokeObjectURL(graphUrl);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -170,8 +206,36 @@ export default function Dashboard({
   const displayUsername = user?.username || username;
 
   // Only ever show the 3 most recent items
-  const recentWorkspaces = workspaces.slice(0, 3);
-  const recentQuizzes = quizzes.slice(0, 3);
+  const recentWorkspaces = dashboardData?.recent_workspaces?.slice(0, 3).map(ws => ({
+    id: ws.id,
+    name: ws.title,
+    lastOpened: new Date(ws.created_at).toLocaleDateString(),
+    progress: ws.progress || 0,
+    iconBg: '#7c3aed'
+  })) || [];
+
+  const recentQuizzes = dashboardData?.recent_quizzes?.slice(0, 3).map(qz => ({
+    id: qz.id,
+    name: qz.title,
+    meta: `${qz.total_questions} Questions`,
+    score: qz.score || 0,
+    fraction: `${qz.attempted_questions ?? '--'}/${qz.total_questions}`
+  })) || [];
+  
+  const stats = dashboardData ? {
+    workspaces: dashboardData.active_workspaces,
+    quizzes: dashboardData.total_quizzes_taken,
+    accuracy: `${dashboardData.average_accuracy}%`,
+    studyTime: formatStudyTime(dashboardData.total_study_time),
+    questions: dashboardData.questions_solved
+  } : {};
+
+  const streak = dashboardData?.study_streak ? {
+    count: dashboardData.study_streak.count,
+    daysCompleted: dashboardData.study_streak.days_completed
+  } : { count: 0, daysCompleted: [false, false, false, false, false, false, false] };
+
+  const revisions = dashboardData?.upcoming_revision ? [dashboardData.upcoming_revision] : [];
 
   return (
     <div className="db-root">

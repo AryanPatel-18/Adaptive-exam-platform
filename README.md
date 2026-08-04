@@ -1,127 +1,378 @@
-<h1 align="center">Adaptive Exam Preparation and Performance Analyzer</h1>
+<h1 align="center">🎯 Adaptive Exam Preparation & Performance Analyzer</h1>
 
 <p align="center">
-  <strong>An intelligent platform designed to streamline student exam preparation using OCR, NLP, and adaptive learning algorithms.</strong>
+  <strong>An intelligent, self-hosted platform that transforms unorganized study materials into personalized, adaptive assessments — powered by OCR, NLP, and machine learning.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django" />
-  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" /></a>
+  <a href="https://www.djangoproject.com/"><img src="https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django" /></a>
+  <a href="https://www.django-rest-framework.org/"><img src="https://img.shields.io/badge/DRF-3.16-A30000?style=for-the-badge&logo=django&logoColor=white" alt="DRF" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" /></a>
+  <a href="https://vite.dev/"><img src="https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" /></a>
 </p>
+
+<p align="center">
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-15-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+  <a href="https://redis.io/"><img src="https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" /></a>
+  <a href="https://min.io/"><img src="https://img.shields.io/badge/MinIO-S3--Compatible-C72E49?style=for-the-badge&logo=minio&logoColor=white" alt="MinIO" /></a>
+  <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" /></a>
+</p>
+
+<br/>
+
+> **Status:** Actively under development. Core backend APIs including auth, workspaces, file ingestion, document processing, quiz generation, scheduling, and dashboard analytics are fully implemented! Frontend integration is currently in progress.
 
 ---
 
 ## 📖 Overview
 
-The **Adaptive Exam Preparation and Performance Analyzer** eliminates the chaos of unorganized study materials. By allowing students to upload varied educational documents (PDFs, typed notes, and handwritten notes), the platform automatically extracts knowledge topics, generates personalized quizzes, and provides deep performance analytics. 
+Students often struggle with scattered, unorganized study materials across PDFs, question banks, and handwritten notes. **Adaptive Exam Prep** solves this by providing a single platform where students can:
 
-Instead of relying on heavy third-party AI APIs, the system utilizes an efficient, self-hosted machine learning extraction pipeline built on top of standard Python NLP/OCR libraries.
+1. **Upload** any study material — typed PDFs, scanned question banks, or handwritten notes.
+2. **Extract** knowledge automatically using OCR (EasyOCR + OpenCV) and NLP pipelines — no third-party AI APIs required.
+3. **Assess** themselves with dynamically generated, adaptive quizzes tailored to their proficiency.
+4. **Track** performance with deep analytics and an intelligent preparedness score powered by a Gradient Boosting ML model.
+
+The entire ML/extraction pipeline is **self-hosted**, running locally without external API dependencies.
+
+---
 
 ## ✨ Features
 
-- **Robust API Layer**: Fully stateless RESTful API powered by Django REST Framework (DRF).
-- **Secure Authentication**: JWT-based authentication using `Argon2/bcrypt` hashing, with robust token lifecycle management.
-- **Wallet & Token System**: Built-in wallet functionality (`UserWallet`, `TokenTransactions`) tracking platform usage and limits.
-- **Smart Workspaces**: Isolated workspaces for managing different subjects, files, and study schedules.
-- **Asynchronous File Ingestion**: Upload validation, SHA-256 duplicate detection, and direct-to-blob storage designed for heavy concurrent usage.
-- **Automated Processing Pipeline**: (In Progress) Converts PDFs, question banks, and handwritten notes to machine-readable objects using OCR and text-processing strategies.
-- **Adaptive Assessments**: (In Progress) Dynamically creates quizzes based on extracted knowledge graphs and student proficiency.
+### ✅ Implemented
+
+| Feature | Description |
+|---|---|
+| **RESTful API** | Fully stateless API layer powered by Django REST Framework with standardized JSON response envelopes. |
+| **JWT Authentication** | Secure token-based auth with Argon2 password hashing, refresh token rotation, and automatic blacklisting. |
+| **Smart Workspaces** | Isolated, per-user workspaces for organizing subjects, files, and study materials. |
+| **File Ingestion Pipeline** | Upload sessions with SHA-256 duplicate detection, content-type validation, and MinIO (S3-compatible) blob storage. |
+| **Question Bank Extraction** | Automated PDF parsing via Camelot — extracts MCQs, maps answer keys, and persists to the database. |
+| **Handwritten Notes OCR** | PDF → Image → OpenCV preprocessing → EasyOCR extraction → Regex candidate topics → LLM validation (Ollama/Qwen). |
+| **Adaptive Quiz Engine** | Dynamically generated assessments based on extracted knowledge graphs and student proficiency levels. |
+| **Study Schedule Generator** | Automated, personalized study plans based on exam dates and topic coverage using Ollama LLM. |
+| **ML Preparedness Model** | Gradient Boosting model predicting exam readiness based on quiz performance and study habits. |
+| **Dashboard API** | User-facing dashboard endpoint aggregating workspace, weekly performance, and ML predictions. |
+| **Wallet & Token System** | Built-in token economy (`UserWallet`, `TokenTransaction`) tracking platform usage with credit/debit ledger. |
+| **Global Exception Handling** | Consistent error envelope across all endpoints with typed error codes. |
+| **Docker Infrastructure** | One-command setup for PostgreSQL, Redis, MinIO, and pgAdmin via Docker Compose. |
+
+### 🚧 In Progress
+
+- **Frontend Integration** — React UI connected to backend auth, workspaces, scheduling, and quiz flows.
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     React 19 + Vite 8                       │
+│               (Authentication UI, Dashboard)                │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ HTTP/REST (JWT Bearer)
+┌──────────────────────────▼──────────────────────────────────┐
+│                 Django REST Framework API                    │
+│  ┌──────────┐ ┌───────────┐ ┌───────┐ ┌────────────────┐   │
+│  │   Auth   │ │ Workspace │ │ Files │ │   Processing   │   │
+│  └──────────┘ └───────────┘ └───────┘ └────────────────┘   │
+│  ┌──────────┐ ┌───────────┐ ┌───────┐ ┌────────────────┐   │
+│  │  Wallet  │ │ Dashboard │ │  Quiz │ │    Schedule    │   │
+│  └──────────┘ └───────────┘ └───────┘ └────────────────┘   │
+└──────┬────────────┬────────────┬────────────┬───────────────┘
+       │            │            │            │
+  ┌────▼───┐   ┌────▼───┐  ┌────▼───┐  ┌─────▼─────┐
+  │Postgres│   │ Redis  │  │ MinIO  │  │  Ollama   │
+  │  15    │   │   7    │  │  (S3)  │  │(Qwen LLM) │
+  └────────┘   └────────┘  └────────┘  └───────────┘
+```
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Backend Framework**: Django & Django REST Framework
-- **Database**: PostgreSQL
-- **Caching & Broker**: Redis (for API acceleration and asynchronous task queues)
-- **Infrastructure**: Docker & Docker Compose
-- **Data Science/OCR Toolkit**: Camelot, Pandas, OpenCV, EasyOCR, RapidFuzz, pdf2image *(coming soon in the processing pipeline)*
+| Layer | Technologies |
+|---|---|
+| **Backend** | Python 3.10+, Django 5.2, Django REST Framework, Simple JWT |
+| **Frontend** | React 19, Vite 8, Axios, React Router DOM |
+| **Database** | PostgreSQL 15 (Alpine) |
+| **Cache / Broker** | Redis 7 (Alpine) |
+| **Object Storage** | MinIO (S3-compatible), pre-signed upload URLs |
+| **OCR / NLP** | EasyOCR, OpenCV, Camelot, PyMuPDF, Pandas |
+| **ML** | scikit-learn (Gradient Boosting), joblib |
+| **LLM** | Ollama (local) with Qwen 3 models |
+| **Infrastructure** | Docker Compose, Makefile automation |
+| **DB Admin** | pgAdmin 4 |
 
 ---
 
 ## 📂 Project Structure
 
-The Django application is heavily modularized into distinct, decoupled apps:
-
 ```text
-backend/
-├── authentication/  # JWT auth, custom user models, login/registration logic
-├── common/          # Shared utilities, standardized API responses, base models
-├── config/          # Django core settings and WSGI/ASGI entrypoints
-├── files/           # File ingestion, hashing, and storage logic
-├── processing/      # Asynchronous extraction and NLP/OCR pipelines
-├── quiz/            # Assessment generation and attempts logic
-├── schedule/        # Automated study schedule generation
-├── wallet/          # User token balances and transaction ledgers
-└── workspace/       # Subject/Workspace isolation for users
+adaptive-exam-platform/
+│
+├── backend/                    # Django REST API
+│   ├── authentication/         #   JWT auth, custom user model, registration & login
+│   ├── common/                 #   Shared utilities, response helpers, base models, exception handler
+│   ├── config/                 #   Django settings, WSGI/ASGI entry points
+│   ├── dashboard/              #   User dashboard aggregation & analytics API
+│   ├── files/                  #   File upload sessions, hashing, MinIO integration
+│   ├── processing/             #   OCR/NLP extraction pipelines (question banks + handwritten notes)
+│   ├── quiz/                   #   Assessment generation, execution & evaluation engine
+│   ├── schedule/               #   Study schedule generation via LLM & heuristics
+│   ├── storage/                #   MinIO/S3 provider utilities & pre-signed URL generation
+│   ├── wallet/                 #   Token balances & transaction ledger
+│   ├── workspace/              #   Per-user workspace isolation & management
+│   ├── manage.py
+│   └── requirements.txt
+│
+├── frontend/                   # React + Vite SPA
+│   ├── src/
+│   │   ├── api/                #   API client utilities
+│   │   ├── components/         #   Reusable UI components
+│   │   ├── context/            #   React context providers
+│   │   ├── hooks/              #   Custom React hooks
+│   │   ├── routes/             #   Route definitions
+│   │   └── utils/              #   Helper functions
+│   ├── package.json
+│   └── vite.config.js
+│
+├── docker-compose.yml          # PostgreSQL, Redis, MinIO, pgAdmin services
+├── .env.example                # Environment variable template
+└── README.md
 ```
+
+---
+
+## 🔌 API Endpoints
+
+All endpoints return a standardized JSON envelope:
+
+```json
+{
+  "success": true,
+  "message": "...",
+  "data": { }
+}
+```
+
+### Authentication
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/auth/register/` | Register a new user account | ✗ |
+| `POST` | `/api/auth/login/` | Authenticate and receive JWT tokens | ✗ |
+
+### Dashboard
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `GET` | `/api/dashboard/stats/` | Get aggregated dashboard metrics | ✓ |
+| `GET` | `/api/dashboard/weekly-graph/` | Get weekly performance metrics | ✓ |
+
+### Workspaces
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/workspace/create/` | Create a new workspace | ✓ |
+| `PATCH` | `/api/workspace/<uuid>/` | Update workspace title/description | ✓ |
+| `DELETE` | `/api/workspace/<uuid>/delete/` | Delete a workspace | ✓ |
+
+### File Management
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/files/upload-request/` | Create an upload session with pre-signed URLs | ✓ |
+| `POST` | `/api/files/upload-request/finalize/` | Finalize and verify uploaded files | ✓ |
+
+### Processing
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/processing/<uuid>/process/` | Trigger workspace document processing | ✓ |
+
+### Quiz
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/quiz/create/` | Generate a new quiz for a workspace | ✓ |
+| `POST` | `/api/quiz/<uuid>/start/` | Start a quiz attempt | ✓ |
+| `GET` | `/api/quiz/attempt/<uuid>/question/<int>/` | Get a specific question | ✓ |
+| `POST` | `/api/quiz/attempt/<uuid>/answer/` | Submit an answer | ✓ |
+| `POST` | `/api/quiz/attempt/<uuid>/submit/` | Finish the quiz attempt | ✓ |
+| `GET` | `/api/quiz/attempt/<uuid>/result/` | Get quiz attempt result | ✓ |
+| `GET` | `/api/quiz/attempts/` | List all user quiz attempts | ✓ |
+
+### Schedule
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/api/schedule/generate/` | Generate a study schedule | ✓ |
+| `GET` | `/api/schedule/<uuid>/` | Get details of a specific schedule | ✓ |
+| `GET` | `/api/schedule/latest/<uuid>/` | Get the latest study schedule for a workspace | ✓ |
 
 ---
 
 ## 🚀 Getting Started
 
-Follow these steps to get a development environment running locally.
-
 ### Prerequisites
 
-- [Docker](https://www.docker.com/) and Docker Compose
-- `make` (for utilizing the Makefile commands)
-- Python 3.10+ (if running the Django server locally outside of Docker)
+- **[Docker](https://www.docker.com/)** & Docker Compose
+- **Python 3.10+** (for running the Django server locally)
+- **Node.js 18+** & npm (for the frontend)
 
-### 1. Clone the repository
+### 1. Clone the Repository
+
 ```bash
-git clone https://github.com/yourusername/adaptive-exam-platform.git
-cd adaptive-exam-platform
+git clone https://github.com/AryanPatel-18/Adaptive-exam-platform.git
+cd Adaptive-exam-platform
 ```
 
 ### 2. Configure Environment Variables
-Copy the example environment variables file and configure your local secrets (like database credentials).
-```bash
-cp .env.example .env
-```
-*(Ensure `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` are set in `.env`)*
 
-### 3. Spin up the Infrastructure
-Use the provided `Makefile` to quickly start the PostgreSQL and Redis containers in the background.
-```bash
-make up
+Create a `.env` file in the project root with the following variables:
+
+```env
+# PostgreSQL
+POSTGRES_DB=adaptive_exam_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_PORT=5433
+
+# Redis
+REDIS_PORT=6379
+
+# MinIO (S3-compatible storage)
+STORAGE_PROVIDER=minio
+MINIO_ENDPOINT=http://localhost:9000
+MINIO_ACCESS_KEY=your_access_key
+MINIO_SECRET_KEY=your_secret_key
+MINIO_BUCKET=adaptive-exam-files
+MINIO_REGION=us-east-1
+MINIO_SECURE=False
 ```
+
+### 3. Start Infrastructure Services
+
+Spin up PostgreSQL, Redis, MinIO, and pgAdmin containers:
+
+```bash
+docker compose up -d
+```
+
+This starts the following services:
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| PostgreSQL | `localhost:5433` | Primary database |
+| Redis | `localhost:6379` | Caching & message broker |
+| MinIO Console | `localhost:9001` | Object storage dashboard |
+| MinIO API | `localhost:9000` | S3-compatible storage API |
+| pgAdmin | `localhost:5050` | Database administration UI |
 
 ### 4. Setup the Backend
-Navigate to the backend directory, install requirements, and apply database migrations.
+
 ```bash
 cd backend
+
+# Create and activate a virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
+# Windows
+venv\Scripts\activate
+
+# macOS / Linux
+source venv/bin/activate
+
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Apply the normalized schema and indexes to PostgreSQL
+# Run database migrations
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 5. Run the Server
+### 5. Setup the Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+### 6. Run the Development Servers
+
+**Backend** (from `backend/`):
+
 ```bash
 python manage.py runserver
 ```
-The API should now be accessible at `http://127.0.0.1:8000/`.
+
+> API available at `http://127.0.0.1:8000/`
+
+**Frontend** (from `frontend/`):
+
+```bash
+npm run dev
+```
+
+> Frontend available at `http://localhost:5173/`
 
 ---
 
-## 🧪 Makefile Commands
+## 🧪 Running Tests
 
-A handy `Makefile` is included in the root directory. Common commands include:
+```bash
+cd backend
+python manage.py test
+```
 
-- `make up`: Starts Postgres and Redis containers.
-- `make down`: Stops and removes the containers.
-- `make logs`: Follows container logs.
-- `make db-shell`: Opens an interactive `psql` shell into the Postgres database.
-- `make clean`: Tears down containers and completely removes data volumes (Use with caution!).
+> **Note:** Automated test coverage is currently being expanded. Test scaffold files exist for all apps.
+
+---
+
+## 📁 Environment Variables Reference
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `POSTGRES_DB` | ✓ | — | PostgreSQL database name |
+| `POSTGRES_USER` | ✓ | — | PostgreSQL username |
+| `POSTGRES_PASSWORD` | ✓ | — | PostgreSQL password |
+| `POSTGRES_PORT` | ✗ | `5433` | PostgreSQL host port |
+| `REDIS_PORT` | ✗ | `6379` | Redis host port |
+| `STORAGE_PROVIDER` | ✓ | — | Storage backend (`minio`) |
+| `MINIO_ENDPOINT` | ✓ | — | MinIO server URL |
+| `MINIO_ACCESS_KEY` | ✓ | — | MinIO access key |
+| `MINIO_SECRET_KEY` | ✓ | — | MinIO secret key |
+| `MINIO_BUCKET` | ✓ | — | Default storage bucket name |
+| `MINIO_REGION` | ✗ | `us-east-1` | MinIO region |
+| `MINIO_SECURE` | ✗ | `False` | Use HTTPS for MinIO |
+
+---
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page if you want to contribute.
+Contributions are welcome! Here's how to get started:
+
+1. **Fork** this repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+Please make sure to:
+- Follow existing code patterns and project conventions
+- Write descriptive commit messages
+- Update documentation as needed
+
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/AryanPatel-18">Aryan Patel</a>
+</p>

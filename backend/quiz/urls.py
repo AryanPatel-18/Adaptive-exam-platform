@@ -7,6 +7,7 @@ from quiz.views import (
     QuizResultAPIView,
     StartQuizAPIView,
     SubmitAnswerAPIView,
+    UserQuizAttemptsAPIView,
 )
 
 app_name = "quiz"
@@ -41,5 +42,10 @@ urlpatterns = [
         "attempt/<uuid:attempt_id>/result/",
         QuizResultAPIView.as_view(),
         name="quiz-result",
+    ),
+    path(
+        "attempts/",
+        UserQuizAttemptsAPIView.as_view(),
+        name="user-attempts",
     ),
 ]

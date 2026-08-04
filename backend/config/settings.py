@@ -146,6 +146,16 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+
+        "schedule": {
+            "handlers": [
+                "console",
+                "application_file",
+                "error_file",
+            ],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 
