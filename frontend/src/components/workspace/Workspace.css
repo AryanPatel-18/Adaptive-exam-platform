@@ -59,6 +59,60 @@
   transform: translateY(-2px);
 }
 
+/* List format items */
+.ws-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ws-list-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 16px;
+}
+
+.ws-list-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ws-list-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+}
+
+.ws-list-card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.ws-list-card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ws-list-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.ws-list-card-subtitle {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
 .ws-empty-icon {
   color: rgba(124, 58, 237, 0.2);
   display: flex;

@@ -6,6 +6,8 @@ import CreateWorkspace from './components/workspace/CreateWorkspace';
 import Quiz from './components/quiz/Quiz';
 import ViewAllWorkspaces from './components/workspace/ViewAllWorkspaces';
 import ViewAllQuizzes from './components/quiz/ViewAllQuizzes';
+import ScheduleGenerator from './components/schedule/ScheduleGenerator';
+import ScheduleView from './components/schedule/ScheduleView';
 import Auth from './components/auth/Auth';
 import useAuth from './hooks/useAuth';
 
@@ -146,6 +148,24 @@ function App() {
         element={
           <ProtectedRoute>
             <Workspace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace/:workspaceId/schedule/create"
+        element={
+          <ProtectedRoute>
+            <ScheduleGenerator />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace/:workspaceId/schedule/:scheduleId"
+        element={
+          <ProtectedRoute>
+            <ScheduleView />
           </ProtectedRoute>
         }
       />

@@ -123,6 +123,7 @@ export default function Workspace({
   // Fetched Workspace Data
   const [workspaceFiles, setWorkspaceFiles] = useState({ question_bank: null, notes: [] });
   const [workspaceQuizzes, setWorkspaceQuizzes] = useState([]);
+  const [workspaceSchedules, setWorkspaceSchedules] = useState([]);
   const [isProcessed, setIsProcessed] = useState(false);
   const [isLoadingFiles, setIsLoadingFiles] = useState(true);
   
@@ -225,14 +226,23 @@ export default function Workspace({
   const fetchWorkspaceData = async () => {
     try {
       setIsLoadingFiles(true);
-      const [filesRes, quizzesRes, statusRes] = await Promise.all([
+      const [workspaceRes, filesRes, quizzesRes, statusRes, schedulesRes] = await Promise.all([
+        api.get(`/api/workspace/${workspaceId}/`),
         api.get(`/api/workspace/${workspaceId}/files/`),
         api.get(`/api/workspace/${workspaceId}/quizzes/`),
-        api.get(`/api/processing/${workspaceId}/status/`).catch(() => ({ data: { is_processed: false } }))
+        api.get(`/api/processing/${workspaceId}/status/`).catch(() => ({ data: { is_processed: false } })),
+        api.get(`/api/schedule/workspace/${workspaceId}/`).catch(() => ({ data: [] }))
       ]);
+      
+      const wsData = workspaceRes.data.data;
+      setWorkspaceName(wsData.title);
+      setLastEditedTimestamp(wsData.updated_at);
+      setEditNameValue(wsData.title);
+
       setWorkspaceFiles(filesRes.data.data);
       setWorkspaceQuizzes(quizzesRes.data.data);
       setIsProcessed(statusRes.data.is_processed);
+      setWorkspaceSchedules(schedulesRes.data || []);
     } catch (err) {
       console.error("Failed to fetch workspace data", err);
       if (err.response?.status === 404) {
@@ -416,17 +426,22 @@ export default function Workspace({
               {isLoadingFiles ? (
                 <div style={{ color: '#a1a1aa' }}>Loading quizzes...</div>
               ) : (
-                <div className="ws-cards-grid" id="workspace-quizzes-grid">
+                <div className="ws-list-container" id="workspace-quizzes-grid">
                   {workspaceQuizzes.map((quiz) => (
-                    <div key={quiz.id} className="ws-empty-square" style={{ borderColor: '#3b82f6', background: 'rgba(59, 130, 246, 0.03)' }} title={quiz.title}>
-                      <span className="ws-empty-icon" style={{ color: '#3b82f6' }}>
+                    <div 
+                      key={quiz.id} 
+                      className="ws-list-card" 
+                      style={{ borderColor: 'rgba(59, 130, 246, 0.2)', background: 'rgba(59, 130, 246, 0.02)' }} 
+                      title={quiz.title}
+                    >
+                      <div className="ws-list-card-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      </span>
-                      <div style={{ position: 'absolute', bottom: '10px', width: '90%', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      </div>
+                      <div className="ws-list-card-content">
+                        <div className="ws-list-card-title" style={{ color: '#3b82f6' }}>
                           {quiz.title}
                         </div>
-                        <div style={{ fontSize: '0.65rem', color: '#a1a1aa', marginTop: '2px' }}>
+                        <div className="ws-list-card-subtitle">
                           {quiz.total_questions} Questions
                         </div>
                       </div>
@@ -472,6 +487,50 @@ export default function Workspace({
                   {!workspaceFiles.question_bank && workspaceFiles.notes.length === 0 && (
                     <div style={{ color: '#6b7280', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
                       No materials uploaded yet. Click "Add files" to get started.
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Schedules Section */}
+            <section className="ws-section" id="workspace-schedules-section">
+              <h2 className="ws-section-title">Schedules</h2>
+              {isLoadingFiles ? (
+                <div style={{ color: '#a1a1aa' }}>Loading schedules...</div>
+              ) : (
+                <div className="ws-list-container" id="workspace-schedules-grid">
+                  {workspaceSchedules.map((schedule) => (
+                    <div 
+                      key={schedule.id} 
+                      className="ws-list-card" 
+                      style={{ borderColor: 'rgba(245, 158, 11, 0.2)', background: 'rgba(245, 158, 11, 0.02)' }} 
+                      title={`Schedule generated on ${new Date(schedule.created_at).toLocaleDateString()}`} 
+                      onClick={() => navigate(`/workspace/${workspaceId}/schedule/${schedule.id}`)}
+                    >
+                      <div className="ws-list-card-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                      </div>
+                      <div className="ws-list-card-content">
+                        <div className="ws-list-card-title" style={{ color: '#f59e0b' }}>
+                          Study Plan
+                        </div>
+                        <div className="ws-list-card-subtitle">
+                          Score: {schedule.preparedness_score}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Empty state if nothing generated */}
+                  {workspaceSchedules.length === 0 && (
+                    <div style={{ color: '#6b7280', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
+                      No schedules generated yet. Click "Create schedule" to get started.
                     </div>
                   )}
                 </div>
@@ -535,6 +594,24 @@ export default function Workspace({
                 style={hasFiles ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.plus}</span> {hasFiles ? 'Files Uploaded' : 'Add files'}
+              </button>
+
+              <button
+                className={`ws-action-btn ws-btn-secondary ${!isProcessed ? 'disabled' : ''}`}
+                id="btn-create-schedule"
+                onClick={() => navigate(`/workspace/${workspaceId}/schedule/create`)}
+                disabled={!isProcessed}
+                title={!isProcessed ? "Workspace must be processed before creating a schedule" : ""}
+                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              >
+                <span className="ws-btn-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </span> Create schedule
               </button>
 
               <button className="ws-action-btn ws-btn-secondary" id="btn-quiz-stats">
@@ -698,12 +775,22 @@ export default function Workspace({
               >Cancel</button>
               <button
                 className="ws-action-btn ws-btn-primary"
-                onClick={() => {
-                  setWorkspaceName(editNameValue);
-                  setLastEditedTimestamp(new Date().toISOString());
-                  setIsEditModalOpen(false);
+                onClick={async () => {
+                  try {
+                    await api.patch(`/api/workspace/${workspaceId}/`, {
+                      title: editNameValue
+                    });
+                    setWorkspaceName(editNameValue);
+                    setLastEditedTimestamp(new Date().toISOString());
+                    setIsEditModalOpen(false);
+                    addToast("Workspace renamed successfully!", "success");
+                  } catch (err) {
+                    console.error(err);
+                    addToast("Failed to rename workspace", "error");
+                  }
                 }}
                 id="btn-save-edit"
+                disabled={!editNameValue.trim()}
               >Save</button>
             </div>
           </div>
@@ -723,7 +810,16 @@ export default function Workspace({
               >Cancel</button>
               <button
                 className="ws-action-btn ws-btn-danger"
-                onClick={() => { setIsDeleted(true); setIsDeleteModalOpen(false); }}
+                onClick={async () => {
+                  try {
+                    await api.delete(`/api/workspace/${workspaceId}/delete/`);
+                    setIsDeleted(true);
+                    setIsDeleteModalOpen(false);
+                  } catch (err) {
+                    console.error(err);
+                    addToast("Failed to delete workspace", "error");
+                  }
+                }}
                 id="btn-confirm-delete"
               >Delete</button>
             </div>
