@@ -101,3 +101,32 @@ class LatestStudyScheduleAPIView(APIView):
             StudyScheduleSerializer(schedule).data,
             status=status.HTTP_200_OK,
         )
+
+
+class WorkspaceStudySchedulesAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(
+        self,
+        request,
+        workspace_id,
+    ):
+        logger.info("Retrieving all study schedules for workspace: %s", workspace_id)
+
+        try:
+            workspace = request.user.workspaces.get(
+                id=workspace_id,
+            )
+        except Workspace.DoesNotExist:
+            logger.warning("Workspace %s not found for user %s", workspace_id, request.user.id)
+            raise WorkspaceNotFoundException()
+
+        schedules = ScheduleSelector.get_all_schedules_for_workspace(
+            workspace=workspace,
+        )
+
+        return Response(
+            StudyScheduleSerializer(schedules, many=True).data,
+            status=status.HTTP_200_OK,
+        )
+

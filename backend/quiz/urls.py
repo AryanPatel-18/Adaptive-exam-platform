@@ -12,6 +12,7 @@ from quiz.views import (
     PauseQuizAPIView,
     InProgressQuizzesAPIView,
     AttemptableQuizzesAPIView,
+    QuizAttemptsAPIView,
 )
 
 app_name = "quiz"
@@ -31,6 +32,11 @@ urlpatterns = [
         "<uuid:quiz_id>/resume/",
         ResumeQuizAPIView.as_view(),
         name="resume-quiz",
+    ),
+    path(
+        "<uuid:quiz_id>/attempts/",
+        QuizAttemptsAPIView.as_view(),
+        name="quiz-attempts",
     ),
     path(
         "attempt/<uuid:attempt_id>/question/<int:question_order>/",

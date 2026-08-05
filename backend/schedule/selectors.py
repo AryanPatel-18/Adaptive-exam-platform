@@ -82,6 +82,28 @@ class ScheduleSelector:
             .first()
         )
 
+    @staticmethod
+    def get_all_schedules_for_workspace(
+        *,
+        workspace,
+    ):
+        """
+        Retrieve all study schedules for a workspace.
+        """
+        return (
+            StudySchedule.objects.select_related(
+                "user",
+                "workspace",
+                "quiz_attempt",
+            )
+            .filter(
+                workspace=workspace,
+            )
+            .order_by(
+                "-created_at",
+            )
+        )
+
 
 class AttemptAnalysisSelector:
 

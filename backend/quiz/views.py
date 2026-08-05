@@ -245,4 +245,30 @@ class InProgressQuizzesAPIView(APIView):
             for attempt in attempts
         ]
         
+        return Response(data, status=status.HTTP_200_OK)
+
+class QuizAttemptsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, quiz_id):
+        from quiz.models import QuizAttempt
+        attempts = QuizAttempt.objects.filter(
+            quiz_id=quiz_id,
+            user=request.user,
+            status=QuizAttempt.Status.COMPLETED
+        ).order_by('-completed_at')
+        
+        data = [
+            {
+                "id": str(attempt.id),
+                "attempt_number": attempt.attempt_number,
+                "score": attempt.score,
+                "total_marks": attempt.total_marks,
+                "percentage": str(attempt.percentage),
+                "time_spent_seconds": attempt.time_spent_seconds,
+                "completed_at": attempt.completed_at.isoformat() if attempt.completed_at else None,
+            }
+            for attempt in attempts
+        ]
+        
         return Response(data, status=status.HTTP_200_OK)

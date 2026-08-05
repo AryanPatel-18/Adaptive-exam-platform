@@ -37,6 +37,18 @@ class CreateWorkspaceView(APIView):
 class UpdateWorkspaceView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, workspace_id):
+        workspace = Workspace.objects.filter(id=workspace_id, owner=request.user).first()
+        if not workspace:
+            raise WorkspaceNotFoundException()
+        
+        response_serializer = WorkspaceSerializer(workspace)
+        return success_response(
+            message="Workspace retrieved successfully.",
+            data=response_serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
     def patch(self, request, workspace_id):
         serializer = UpdateWorkspaceSerializer(
             data=request.data,
