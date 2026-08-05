@@ -66,6 +66,8 @@ export default function Navbar({
               onClick={() => {
                 if (id === 'home') {
                   navigate('/dashboard');
+                } else if (id === 'history') {
+                  navigate('/history');
                 } else {
                   onNavigate(id);
                 }
@@ -113,6 +115,11 @@ export default function Navbar({
           placeholder="Search workspaces…"
           value={searchValue}
           onChange={e => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && searchValue.trim()) {
+              navigate(`/search?q=${encodeURIComponent(searchValue.trim())}`);
+            }
+          }}
           aria-label="Search workspaces"
         />
       </div>

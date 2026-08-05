@@ -9,6 +9,8 @@ import ViewAllQuizzes from './components/quiz/ViewAllQuizzes';
 import ScheduleGenerator from './components/schedule/ScheduleGenerator';
 import ScheduleView from './components/schedule/ScheduleView';
 import Auth from './components/auth/Auth';
+import GlobalSearch from './components/search/GlobalSearch';
+import UserHistory from './components/history/UserHistory';
 import useAuth from './hooks/useAuth';
 
 // ─── Route Guards ──────────────────────────────────────────────────────────
@@ -139,6 +141,24 @@ function App() {
         element={
           <ProtectedRoute>
             <CreateWorkspace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/search"
+        element={
+          <ProtectedRoute>
+            <GlobalSearch {...sharedProps} />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <UserHistory />
           </ProtectedRoute>
         }
       />
