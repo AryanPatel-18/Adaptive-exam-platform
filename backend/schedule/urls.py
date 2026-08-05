@@ -4,6 +4,7 @@ from schedule.views import (
     GenerateScheduleAPIView,
     LatestStudyScheduleAPIView,
     StudyScheduleAPIView,
+    WorkspaceStudySchedulesAPIView,
 )
 
 app_name = "schedule"
@@ -23,5 +24,10 @@ urlpatterns = [
         "latest/<uuid:workspace_id>/",
         LatestStudyScheduleAPIView.as_view(),
         name="latest-study-schedule",
+    ),
+    path(
+        "workspace/<uuid:workspace_id>/",
+        WorkspaceStudySchedulesAPIView.as_view(),
+        name="workspace-study-schedules",
     ),
 ]

@@ -2,10 +2,16 @@ import { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './components/home/Dashboard';
 import Workspace from './components/workspace/Workspace';
+import CreateWorkspace from './components/workspace/CreateWorkspace';
 import Quiz from './components/quiz/Quiz';
 import ViewAllWorkspaces from './components/workspace/ViewAllWorkspaces';
 import ViewAllQuizzes from './components/quiz/ViewAllQuizzes';
+import ScheduleGenerator from './components/schedule/ScheduleGenerator';
+import ScheduleView from './components/schedule/ScheduleView';
 import Auth from './components/auth/Auth';
+import GlobalSearch from './components/search/GlobalSearch';
+import UserHistory from './components/history/UserHistory';
+import QuizDetail from './components/quiz/QuizDetail';
 import useAuth from './hooks/useAuth';
 
 // ─── Route Guards ──────────────────────────────────────────────────────────
@@ -132,10 +138,64 @@ function App() {
       />
 
       <Route
+        path="/workspace/create"
+        element={
+          <ProtectedRoute>
+            <CreateWorkspace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/search"
+        element={
+          <ProtectedRoute>
+            <GlobalSearch {...sharedProps} />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <UserHistory />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/workspace/:id"
         element={
           <ProtectedRoute>
             <Workspace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace/:workspaceId/quiz-stats"
+        element={
+          <ProtectedRoute>
+            <QuizDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace/:workspaceId/schedule/create"
+        element={
+          <ProtectedRoute>
+            <ScheduleGenerator />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace/:workspaceId/schedule/:scheduleId"
+        element={
+          <ProtectedRoute>
+            <ScheduleView />
           </ProtectedRoute>
         }
       />

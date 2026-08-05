@@ -77,10 +77,6 @@ export default function DashboardSidebar({
             </li>
           )}
         </ul>
-        <button className="db-study-plan-btn" id="db-view-study-plan-btn">
-          View Study Plan
-          <span className="db-btn-chevron" aria-hidden="true"><ChevronRightIcon /></span>
-        </button>
       </section>
 
       {/* This Week Overview */}
