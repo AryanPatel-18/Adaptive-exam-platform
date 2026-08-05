@@ -8,6 +8,7 @@ from quiz.views import (
     StartQuizAPIView,
     SubmitAnswerAPIView,
     UserQuizAttemptsAPIView,
+    WorkspaceQuizStatsAPIView,
     ResumeQuizAPIView,
     PauseQuizAPIView,
     InProgressQuizzesAPIView,
@@ -78,4 +79,10 @@ urlpatterns = [
         InProgressQuizzesAPIView.as_view(),
         name="in-progress-quizzes",
     ),
+    path(
+        "workspace/<uuid:workspace_id>/stats/",
+        WorkspaceQuizStatsAPIView.as_view(),
+        name="workspace-quiz-stats",
+    ),
 ]
+# Triggering dev server reload

@@ -11,6 +11,7 @@ import ScheduleView from './components/schedule/ScheduleView';
 import Auth from './components/auth/Auth';
 import GlobalSearch from './components/search/GlobalSearch';
 import UserHistory from './components/history/UserHistory';
+import QuizDetail from './components/quiz/QuizDetail';
 import useAuth from './hooks/useAuth';
 
 // ─── Route Guards ──────────────────────────────────────────────────────────
@@ -168,6 +169,15 @@ function App() {
         element={
           <ProtectedRoute>
             <Workspace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace/:workspaceId/quiz-stats"
+        element={
+          <ProtectedRoute>
+            <QuizDetail />
           </ProtectedRoute>
         }
       />

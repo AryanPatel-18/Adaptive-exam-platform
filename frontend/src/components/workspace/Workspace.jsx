@@ -614,7 +614,10 @@ export default function Workspace({
                 </span> Create schedule
               </button>
 
-              <button className="ws-action-btn ws-btn-secondary" id="btn-quiz-stats">
+              <button 
+                className="ws-action-btn ws-btn-secondary" 
+                onClick={() => navigate(`/workspace/${workspaceId}/quiz-stats`)}
+              >
                 <span className="ws-btn-icon">{Icon.stats}</span> Quiz stats for WS
               </button>
             </div>

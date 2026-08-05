@@ -286,4 +286,80 @@ class QuizAttemptsAPIView(APIView):
             for attempt in attempts
         ]
         
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
+
+class WorkspaceQuizStatsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, workspace_id):
+        from quiz.models import Quiz, QuizAttempt, QuizAttemptAnswer
+        from django.db.models import Count, Avg, Sum
+        from django.db import models
+        
+        quizzes = Quiz.objects.filter(workspace_id=workspace_id, created_by=request.user)
+        total_quizzes = quizzes.count()
+        
+        attempts = QuizAttempt.objects.filter(
+            quiz__workspace_id=workspace_id, 
+            user=request.user, 
+            status=QuizAttempt.Status.COMPLETED
+        )
+        total_attempts = attempts.count()
+        
+        aggregates = attempts.aggregate(
+            avg_score=Avg('percentage'),
+            total_time=Sum('time_spent_seconds')
+        )
+        avg_score = round(aggregates['avg_score'] or 0, 2)
+        total_time = aggregates['total_time'] or 0
+        
+        topic_stats = []
+        topic_performance = QuizAttemptAnswer.objects.filter(
+            attempt__in=attempts
+        ).values(
+            'question__question_topics__topic__name'
+        ).annotate(
+            total=Count('id'),
+            correct=Sum(models.Case(models.When(is_correct=True, then=1), default=0, output_field=models.IntegerField()))
+        ).exclude(
+            question__question_topics__topic__name__isnull=True
+        )
+        
+        for tp in topic_performance:
+            t = tp['total']
+            c = tp['correct']
+            topic_stats.append({
+                "topic": tp['question__question_topics__topic__name'],
+                "total_questions": t,
+                "correct": c,
+                "accuracy": round((c / t * 100), 2) if t > 0 else 0
+            })
+            
+        hardest = QuizAttemptAnswer.objects.filter(
+            attempt__in=attempts
+        ).values(
+            'question__id', 'question__question_text'
+        ).annotate(
+            total=Count('id'),
+            correct=Sum(models.Case(models.When(is_correct=True, then=1), default=0, output_field=models.IntegerField()))
+        ).filter(total__gt=0).order_by('correct')[:5]
+        
+        hardest_questions = []
+        for h in hardest:
+            t = h['total']
+            c = h['correct']
+            hardest_questions.append({
+                "question": h['question__question_text'],
+                "accuracy": round((c / t * 100), 2)
+            })
+
+        return Response({
+            "overview": {
+                "total_quizzes": total_quizzes,
+                "total_attempts": total_attempts,
+                "average_score": avg_score,
+                "total_time_spent_seconds": total_time,
+            },
+            "topics": topic_stats,
+            "hardest_questions": hardest_questions
+        }, status=status.HTTP_200_OK)
