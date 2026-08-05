@@ -83,3 +83,9 @@ class DashboardStatsSerializer(serializers.Serializer):
     recent_workspaces = RecentWorkspaceSerializer(many=True)
     recent_quizzes = RecentQuizSerializer(many=True)
     upcoming_revision = UpcomingScheduleSerializer(allow_null=True)
+
+class UserActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        from dashboard.models import UserActivity
+        model = UserActivity
+        fields = ['id', 'action', 'description', 'metadata', 'timestamp']

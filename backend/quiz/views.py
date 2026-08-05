@@ -17,6 +17,7 @@ from quiz.services import (
     QuizAttemptService,
     QuizGenerationService,
 )
+from dashboard.services import ActivityLogger
 
 
 class CreateQuizAPIView(APIView):
@@ -31,6 +32,13 @@ class CreateQuizAPIView(APIView):
             created_by=request.user,
             title=serializer.validated_data["title"],
             question_count=serializer.validated_data["question_count"],
+        )
+
+        ActivityLogger.log(
+            user=request.user,
+            action="QUIZ_CREATED",
+            description=f"Generated a new quiz '{quiz.title}' with {quiz.total_questions} questions.",
+            metadata={"quiz_id": str(quiz.id), "workspace_id": str(quiz.workspace_id)}
         )
 
         return Response(
@@ -149,6 +157,13 @@ class FinishQuizAPIView(APIView):
 
         attempt = QuizAttemptService.finish_attempt(
             attempt=attempt,
+        )
+
+        ActivityLogger.log(
+            user=request.user,
+            action="QUIZ_COMPLETED",
+            description=f"Completed quiz '{attempt.quiz.title}' with score {attempt.score}%.",
+            metadata={"quiz_id": str(attempt.quiz.id), "attempt_id": str(attempt.id)}
         )
 
         return Response(

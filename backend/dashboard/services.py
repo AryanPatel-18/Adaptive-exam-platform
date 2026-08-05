@@ -71,3 +71,86 @@ class DashboardService:
         plt.close(fig)
         
         return buf.getvalue()
+
+    @staticmethod
+    def search_workspaces(user, query):
+        from workspace.models import Workspace
+        from django.db.models import Q
+        
+        query = str(query).strip()
+        if not query:
+            return []
+            
+        # Perform ORM search across workspace title, files, quizzes, and topics
+        workspaces = Workspace.objects.filter(owner=user).filter(
+            Q(title__icontains=query) |
+            Q(files__original_filename__icontains=query) |
+            Q(quizzes__title__icontains=query) |
+            Q(topics__name__icontains=query)
+        ).distinct()
+        
+        results = []
+        for ws in workspaces:
+            matched_in = set()
+            matched_values = set()
+            
+            # Check Title
+            if query.lower() in ws.title.lower():
+                matched_in.add("Workspace Title")
+                matched_values.add(ws.title)
+                
+            # Check Files
+            ws_files = list(ws.files.all())
+            for f in ws_files:
+                if query.lower() in f.original_filename.lower():
+                    matched_in.add("Files")
+                    matched_values.add(f.original_filename)
+                    
+            # Check Quizzes
+            ws_quizzes = list(ws.quizzes.all())
+            for q in ws_quizzes:
+                if query.lower() in q.title.lower():
+                    matched_in.add("Quizzes")
+                    matched_values.add(q.title)
+                    
+            # Check Topics
+            ws_topics = list(ws.topics.all())
+            for t in ws_topics:
+                if query.lower() in t.name.lower():
+                    matched_in.add("Topics")
+                    matched_values.add(t.name)
+                    
+            results.append({
+                "workspace_id": str(ws.id),
+                "workspace_title": ws.title,
+                "matched_in": list(matched_in),
+                "matched_values": list(matched_values)[:10], # Return up to 10 matching string values
+                "content": {
+                    "files": [f.original_filename for f in ws_files],
+                    "topics": [t.name for t in ws_topics],
+                    "quizzes": [q.title for q in ws_quizzes]
+                },
+                "_match_score": len(matched_in) + len(matched_values)
+            })
+            
+        # Sort by match score and return top 3
+        results.sort(key=lambda x: x["_match_score"], reverse=True)
+        top_results = results[:3]
+        for r in top_results:
+            del r["_match_score"]
+            
+        return top_results
+
+class ActivityLogger:
+    @staticmethod
+    def log(user, action, description, metadata=None):
+        from dashboard.models import UserActivity
+        try:
+            UserActivity.objects.create(
+                user=user,
+                action=action,
+                description=description,
+                metadata=metadata or {}
+            )
+        except Exception as e:
+            logger.error("Failed to log activity for user %s: %s", getattr(user, 'id', 'unknown'), str(e))

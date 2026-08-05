@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from common.responses import success_response
+from dashboard.services import ActivityLogger
 from .models import Workspace
 from .serializer import WorkspaceSerializer, UpdateWorkspaceSerializer, WorkspaceFileSerializer, WorkspaceDetailSerializer
 from .service import WorkspaceService
@@ -25,6 +26,13 @@ class CreateWorkspaceView(APIView):
         )
 
         response_serializer = WorkspaceSerializer(workspace)
+
+        ActivityLogger.log(
+            user=request.user,
+            action="WORKSPACE_CREATED",
+            description=f"Created workspace '{workspace.title}'",
+            metadata={"workspace_id": str(workspace.id)}
+        )
 
         return success_response(
             message="Workspace created successfully.",

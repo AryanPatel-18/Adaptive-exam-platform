@@ -11,6 +11,7 @@ from schedule.serializers import (
     GenerateScheduleSerializer,
     StudyScheduleSerializer,
 )
+from dashboard.services import ActivityLogger
 from schedule.services import ScheduleGenerationService
 from schedule.selectors import ScheduleSelector
 from workspace.models import Workspace
@@ -40,6 +41,13 @@ class GenerateScheduleAPIView(APIView):
 
         logger.info("Schedule successfully generated with ID: %s", schedule.id)
 
+        ActivityLogger.log(
+            user=request.user,
+            action="SCHEDULE_CREATED",
+            description=f"Generated a new study schedule based on quiz attempt.",
+            metadata={"schedule_id": str(schedule.id), "workspace_id": str(schedule.workspace_id)}
+        )
+
         return Response(
             StudyScheduleSerializer(schedule).data,
             status=status.HTTP_201_CREATED,
@@ -59,6 +67,13 @@ class StudyScheduleAPIView(APIView):
         schedule = ScheduleSelector.get_schedule_for_user(
             schedule_id=schedule_id,
             user=request.user,
+        )
+
+        ActivityLogger.log(
+            user=request.user,
+            action="SCHEDULE_VIEWED",
+            description="Viewed a study schedule.",
+            metadata={"schedule_id": str(schedule.id)}
         )
 
         return Response(
