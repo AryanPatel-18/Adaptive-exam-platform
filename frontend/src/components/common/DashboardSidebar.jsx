@@ -100,16 +100,7 @@ export default function DashboardSidebar({
             ))}
           </div>
         </div>
-        <div className="db-week-stats">
-          <div className="db-week-stat">
-            <p className="db-week-val">{weekSummary.avgAccuracy}</p>
-            <p className="db-week-lbl">Avg. Accuracy</p>
-          </div>
-          <div className="db-week-stat">
-            <p className="db-week-val">{weekSummary.studyTime}</p>
-            <p className="db-week-lbl">Study Time</p>
-          </div>
-        </div>
+
       </section>
 
     </aside>

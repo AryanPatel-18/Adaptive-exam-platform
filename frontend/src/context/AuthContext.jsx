@@ -43,27 +43,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true); // true until initial check completes
 
-  // ─── Session Restoration (on mount) ────────────────────────────────────────
-  //
-  // When the app loads, check localStorage for an existing session.
-  // If a valid access token and user are present, restore the state
-  // immediately so the user isn't forced to re-login on every refresh.
-  //
-  useEffect(() => {
-    const restoreSession = () => {
-      const token = getAccessToken();
-      const cachedUser = getUser();
-
-      if (token && cachedUser) {
-        setUser(cachedUser);
-        setIsAuthenticated(true);
-      }
-
-      setLoading(false);
-    };
-
-    restoreSession();
-  }, []);
+  // Session Restoration moved below declarations to avoid ReferenceError
 
   // ─── Login ─────────────────────────────────────────────────────────────────
   //
@@ -162,6 +142,34 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
     }
   }, []);
+
+  // ─── Session Restoration (on mount) ────────────────────────────────────────
+  //
+  // When the app loads, check localStorage for an existing session.
+  // If a valid access token and user are present, restore the state
+  // immediately so the user isn't forced to re-login on every refresh.
+  //
+  useEffect(() => {
+    const restoreSession = async () => {
+      const token = getAccessToken();
+      const cachedUser = getUser();
+
+      if (token && cachedUser) {
+        setUser(cachedUser);
+        setIsAuthenticated(true);
+        setLoading(false);
+      } else {
+        const refreshToken = getRefreshToken();
+        if (refreshToken) {
+          // Attempt to silently refresh access token
+          await refreshAuthentication();
+        }
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, [refreshAuthentication]);
 
   // ─── Context Value ─────────────────────────────────────────────────────────
 

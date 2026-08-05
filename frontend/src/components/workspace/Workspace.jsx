@@ -137,7 +137,6 @@ export default function Workspace({
       <Navbar
         activePage={activePage}
         onNavigate={setActivePage}
-        onCreateWorkspace={() => setIsCreateWorkspaceModalOpen(true)}
         notificationCount={0}
         searchValue={searchValue}
         onSearchChange={setSearchValue}

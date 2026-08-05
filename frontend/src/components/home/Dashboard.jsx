@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import api from '../../api/axios';
 import Navbar from '../common/Navbar';
 import DashboardSidebar from '../common/DashboardSidebar';
 import {WorkspaceIcon,QuizeIcon,TrendingIcon,ClockIcon,TargetIcon,FlameIcon,CalenderIcon,DocumentIcon,ChevronRightIcon,InboxIcon} from '../common/svg'
@@ -140,22 +141,6 @@ export default function Dashboard({
   onViewAllWorkspaces = () => {},
   onViewAllQuizzes = () => {},
 }) {
-    workspaces = [
-    {
-      id: 1,
-      name: "Operating Systems Unit 1",
-      meta: "Completed 2 hours ago • 15 Questions",
-      score: 93,
-      fraction: "14/15"
-    },
-    {
-      id: 2,
-      name: "DBMS Normalization",
-      meta: "Completed Yesterday • 20 Questions",
-      score: 80,
-      fraction: "16/20"
-    }
-  ]
   const [activePage, setActivePage] = useState('dashboard');
   const [searchValue, setSearchValue] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
@@ -379,7 +364,7 @@ export default function Dashboard({
           streak={streak}
           revisions={revisions}
           weekSummary={weekSummary}
-          weeklyGraphImage={weeklyGraphImage}
+          weeklyGraphImage={graphUrl || weeklyGraphImage}
         />
       </main>
     </div>
