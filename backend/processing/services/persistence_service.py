@@ -47,6 +47,12 @@ class PersistenceService:
             source_file.id,
         )
 
+        # Ensure idempotency on re-runs by clearing existing questions and topic files for this file
+        logger.debug("Deleting any existing questions for source_file_id=%s", source_file.id)
+        Question.objects.filter(source_file=source_file).delete()
+        logger.debug("Deleting any existing TopicFiles for source_file_id=%s", source_file.id)
+        TopicFile.objects.filter(file=source_file).delete()
+
         # Create Question records
         questions = PersistenceService._create_questions(
             source_file=source_file,
@@ -285,6 +291,10 @@ class PersistenceService:
             "Successfully persisted %d topics.",
             len(persisted_topics),
         )
+
+        # Ensure idempotency on re-runs by clearing existing TopicFiles for this file
+        logger.debug("Deleting any existing TopicFiles for source_file_id=%s", source_file.id)
+        TopicFile.objects.filter(file=source_file).delete()
 
         PersistenceService._create_topic_files(
             source_file=source_file,

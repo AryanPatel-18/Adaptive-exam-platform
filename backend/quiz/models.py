@@ -109,6 +109,8 @@ class QuizAttempt(BaseModel):
 
     total_marks = models.PositiveIntegerField(default=0)
 
+    time_spent_seconds = models.PositiveIntegerField(default=0)
+
     percentage = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -171,6 +173,8 @@ class QuizAttemptAnswer(BaseModel):
     )
 
     is_correct = models.BooleanField(default=False)
+
+    time_spent_seconds = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = "quiz_attempt_answers"

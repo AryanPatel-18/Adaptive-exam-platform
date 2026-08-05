@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from common.responses import success_response
+from dashboard.services import ActivityLogger
 
 from .exceptions import AuthenticationException
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
@@ -41,6 +42,13 @@ class LoginView(APIView):
 
         authentication_data = AuthenticationService.authenticate_user(
             serializer.validated_data
+        )
+        
+        user = authentication_data["user"]
+        ActivityLogger.log(
+            user=user,
+            action="LOGIN",
+            description="User logged into the platform."
         )
 
         return success_response(
