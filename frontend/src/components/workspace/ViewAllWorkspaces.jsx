@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Navbar from '../common/Navbar';
 import DashboardSidebar from '../common/DashboardSidebar';
-import { WorkspaceIcon, InboxIcon } from '../common/svg';
+import { WorkspaceIcon, InboxIcon, StarIcon } from '../common/svg';
+import WorkspaceCard from '../common/WorkspaceCard';
 import './ViewAllWorkspaces.css';
 import '../home/Dashboard.css';
 
@@ -73,6 +74,13 @@ export default function ViewAllWorkspaces({
   const [searchValue, setSearchValue] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [sortBy, setSortBy] = useState('recent');
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
+
+  const toggleFavorite = (id) => setFavoriteIds(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const filtered = getFilteredWorkspaces(workspaces, activeFilter, searchValue);
 
@@ -122,7 +130,7 @@ export default function ViewAllWorkspaces({
                 onChange={e => setSortBy(e.target.value)}
               >
                 <option value="recent">Most Recent</option>
-                <option value="name">Name A–Z</option>
+                <option value="name">Name A-Z</option>
                 <option value="progress">Progress</option>
               </select>
             </div>
@@ -159,64 +167,27 @@ export default function ViewAllWorkspaces({
                     style={{ background: ICON_COLORS[idx % ICON_COLORS.length] }}
                   />
 
+                  {/* Favourite star */}
+                  <button
+                    className={`va-ws-star-btn ${favoriteIds.has(ws.id ?? idx) ? 'starred' : ''}`}
+                    id={`va-star-workspace-${ws.id ?? idx}`}
+                    aria-label={favoriteIds.has(ws.id ?? idx) ? 'Remove from favourites' : 'Add to favourites'}
+                    onClick={e => { e.stopPropagation(); toggleFavorite(ws.id ?? idx); }}
+                    title={favoriteIds.has(ws.id ?? idx) ? 'Unfavourite' : 'Favourite'}
+                  >
+                    <StarIcon/>
+                  </button>
+
                   {/* Card body */}
-                  <div className="va-ws-body">
-                    <div
-                      className="va-ws-icon"
-                      style={{
-                        background: ICON_COLORS[idx % ICON_COLORS.length],
-                        boxShadow: `0 4px 14px ${ICON_COLORS[idx % ICON_COLORS.length]}44`,
-                      }}
-                    >
-                      <WorkspaceIcon />
-                    </div>
-
-                    <h2 className="va-ws-name">{ws.name}</h2>
-                    <p className="va-ws-meta">Last opened {ws.lastOpened}</p>
-
-                    {/* Progress */}
-                    <div className="va-ws-progress-section">
-                      <div className="va-ws-progress-header">
-                        <span className="va-ws-progress-label">Progress</span>
-                        <span
-                          className="va-ws-progress-pct"
-                          style={{
-                            color: ws.progress === 100 ? '#059669'
-                              : ws.progress >= 50 ? '#2563eb'
-                              : '#d97706'
-                          }}
-                        >
-                          {ws.progress ?? 0}%
-                        </span>
-                      </div>
-                      <ProgressBar value={ws.progress ?? 0} />
-                    </div>
-
-                    {/* Stats row */}
-                    <div className="va-ws-stats">
-                      <span className="va-ws-stat-pill">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                        </svg>
-                        {ws.quizCount ?? 0} quizzes
-                      </span>
-                      <span className="va-ws-stat-pill">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-                        </svg>
-                        {ws.fileCount ?? 0} files
-                      </span>
-                    </div>
-
-                    {/* Open button */}
-                    <button
-                      className="va-ws-open-btn"
-                      id={`va-open-workspace-${ws.id ?? idx}`}
-                      style={{ '--accent': ICON_COLORS[idx % ICON_COLORS.length] }}
-                    >
-                      Open Workspace
-                    </button>
-                  </div>
+                  <WorkspaceCard
+                  id = {ws.id}
+                  name = {ws.name}
+                  lastOpened = {ws.lastOpened}
+                  progress = {ws.progress}
+                  quizCount = {ws.quizCount}
+                  fileCount = {ws.fileCount}
+                  idx = {idx}
+                  />
                 </div>
               ))}
             </div>

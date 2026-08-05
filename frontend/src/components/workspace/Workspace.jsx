@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
 import Quiz from '../quiz/Quiz';
 import './Workspace.css';
+import { StarIcon } from '../common/svg';
 
 // ── Helper: Format standard timestamp to relative time ("X mins ago") ──────────
 function formatTimeAgo(timestamp) {
@@ -84,6 +85,7 @@ export default function Workspace({
   );
   const [isDeleted, setIsDeleted] = useState(false);
   const [isQuizActive, setIsQuizActive] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
   const [, setTick] = useState(0);
 
   // Auto-refresh relative time display every 30s
@@ -137,6 +139,7 @@ export default function Workspace({
       <Navbar
         activePage={activePage}
         onNavigate={setActivePage}
+        onCreateWorkspace={() => setIsCreateWorkspaceModalOpen(true)}
         notificationCount={0}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
@@ -148,10 +151,20 @@ export default function Workspace({
 
           {/* Workspace Header */}
           <div className="ws-header db-card" id="workspace-header-section">
-            <span>
-              <span className="ws-title" id="workspace-title">{workspaceName}</span>
-              <span className="ws-meta" id="workspace-last-edited">(Last edited: {formatTimeAgo(lastEditedTimestamp)}) </span>
-            </span>
+            <div className="ws-header-title-row">
+              <div>
+                <span className="ws-title" id="workspace-title">{workspaceName}</span>
+                <span className="ws-meta" id="workspace-last-edited">(Last edited: {formatTimeAgo(lastEditedTimestamp)}) </span>
+              </div>
+              <button
+                className={`ws-star-btn ${isFavorited ? 'starred' : ''}`}
+                id="btn-favorite-workspace"
+                aria-label={isFavorited ? 'Remove from favourites' : 'Add to favourites'}
+                title={isFavorited ? 'Unfavourite' : 'Favourite'}
+                onClick={() => setIsFavorited(f => !f)}>
+                <StarIcon/>
+              </button>
+            </div>
           </div>
 
           <div className="ws-sections db-card" id="workspace-content-cards">
