@@ -20,6 +20,72 @@
   padding-left: 10px;
 }
 
+/* Header title row – title + star button side by side */
+.ws-header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ── Favourite star button ──────────────────────────────── */
+.ws-star-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 100px;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.ws-star-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: #9ca3af;
+  flex-shrink: 0;
+  transition: fill 0.2s ease, stroke 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ws-star-btn:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: #fffbeb;
+}
+
+.ws-star-btn:hover svg {
+  stroke: #f59e0b;
+  transform: scale(1.2) rotate(-5deg);
+}
+
+/* Starred / active state */
+.ws-star-btn.starred {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.ws-star-btn.starred svg {
+  fill: #f59e0b;
+  stroke: #f59e0b;
+  transform: scale(1.1);
+}
+
+.ws-star-btn.starred:hover svg {
+  fill: #d97706;
+  stroke: #d97706;
+}
+
 .ws-sections {
   display: flex;
   flex-direction: column;

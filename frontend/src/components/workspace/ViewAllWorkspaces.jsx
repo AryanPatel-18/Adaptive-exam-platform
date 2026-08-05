@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import Navbar from '../common/Navbar';
 import DashboardSidebar from '../common/DashboardSidebar';
-import { WorkspaceIcon, InboxIcon } from '../common/svg';
+import { WorkspaceIcon, InboxIcon, StarIcon } from '../common/svg';
+import WorkspaceCard from '../common/WorkspaceCard';
 import './ViewAllWorkspaces.css';
 import '../home/Dashboard.css';
 
@@ -188,7 +189,7 @@ export default function ViewAllWorkspaces({
                 onChange={e => setSortBy(e.target.value)}
               >
                 <option value="recent">Most Recent</option>
-                <option value="name">Name A–Z</option>
+                <option value="name">Name A-Z</option>
                 <option value="progress">Progress</option>
               </select>
             </div>
@@ -224,6 +225,17 @@ export default function ViewAllWorkspaces({
                     className="va-ws-accent"
                     style={{ background: ICON_COLORS[idx % ICON_COLORS.length] }}
                   />
+
+                  {/* Favourite star */}
+                  <button
+                    className={`va-ws-star-btn ${favoriteIds.has(ws.id ?? idx) ? 'starred' : ''}`}
+                    id={`va-star-workspace-${ws.id ?? idx}`}
+                    aria-label={favoriteIds.has(ws.id ?? idx) ? 'Remove from favourites' : 'Add to favourites'}
+                    onClick={e => { e.stopPropagation(); toggleFavorite(ws.id ?? idx); }}
+                    title={favoriteIds.has(ws.id ?? idx) ? 'Unfavourite' : 'Favourite'}
+                  >
+                    <StarIcon/>
+                  </button>
 
                   {/* Card body */}
                   <div className="va-ws-body">

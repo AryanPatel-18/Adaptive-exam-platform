@@ -12,8 +12,8 @@ const LogOutIcon = () => (
 // ── Nav link definitions ──────────────────────────────────────────────────────
 const NAV_LINKS = [
   { id: "home", label: "Home" },
-
-  { id: "history", label: "History" },
+  
+  { id: "stats", label: "Statistics" },
 
   {
     id: "workspaces",

@@ -2,46 +2,12 @@ import React, { useState } from 'react';
 import Navbar from '../common/Navbar';
 import DashboardSidebar from '../common/DashboardSidebar';
 import { QuizeIcon, DocumentIcon, InboxIcon } from '../common/svg';
+import QuizCard from '../common/QuizCard';
 import './ViewAllQuizzes.css';
 import '../home/Dashboard.css';
 
-// ── Score colour helper ───────────────────────────────────────────────────────
-function scoreColor(pct) {
-  if (pct >= 80) return '#059669';
-  if (pct >= 60) return '#d97706';
-  return '#dc2626';
-}
 
-function scoreLabel(pct) {
-  if (pct >= 80) return 'Excellent';
-  if (pct >= 60) return 'Good';
-  if (pct >= 40) return 'Fair';
-  return 'Needs Work';
-}
 
-// ── Donut chart (SVG) ─────────────────────────────────────────────────────────
-function ScoreRing({ pct }) {
-  const r = 28;
-  const circ = 2 * Math.PI * r;
-  const fill = (pct / 100) * circ;
-  const color = scoreColor(pct);
-  return (
-    <svg className="vaq-ring" viewBox="0 0 72 72" aria-hidden="true">
-      <circle cx="36" cy="36" r={r} fill="none" stroke="#e5e7eb" strokeWidth="7" />
-      <circle
-        cx="36" cy="36" r={r} fill="none"
-        stroke={color} strokeWidth="7"
-        strokeDasharray={`${fill} ${circ}`}
-        strokeLinecap="round"
-        transform="rotate(-90 36 36)"
-        style={{ transition: 'stroke-dasharray 0.6s ease' }}
-      />
-      <text x="36" y="41" textAnchor="middle" fontSize="14" fontWeight="700" fill={color}>
-        {pct}%
-      </text>
-    </svg>
-  );
-}
 
 // ── Sample quiz data (replace with real API data) ─────────────────────────────
 const SAMPLE_QUIZZES = [
@@ -79,13 +45,14 @@ function getFiltered(quizzes, filter, search) {
  * Keeps the same Navbar + DashboardSidebar layout as Dashboard.
  */
 export default function ViewAllQuizzes({
-  quizzes = [],
+  quizzes = SAMPLE_QUIZZES,
   streak = { count: 0, daysCompleted: [false, false, false, false, false, false, false] },
   revisions = [],
   weekSummary = { avgAccuracy: '--', studyTime: '--' },
   weeklyGraphImage = '',
   onNavigateBack,
 }) {
+  quizzes = SAMPLE_QUIZZES
   const [activePage, setActivePage] = useState('quizzes');
   const [searchValue, setSearchValue] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -203,52 +170,16 @@ export default function ViewAllQuizzes({
               // ── GRID VIEW ──────────────────────────────────────────────────
               <div className="vaq-grid" id="vaq-quizzes-grid">
                 {sorted.map((qz, idx) => (
-                  <div
-                    key={qz.id ?? idx}
-                    id={`vaq-quiz-card-${qz.id ?? idx}`}
-                    className="vaq-card db-card"
-                  >
-                    {/* Score ring */}
-                    <div className="vaq-card-top">
-                      <ScoreRing pct={qz.score ?? 0} />
-                      <span
-                        className="vaq-score-badge"
-                        style={{ background: `${scoreColor(qz.score)}18`, color: scoreColor(qz.score) }}
-                      >
-                        {scoreLabel(qz.score)}
-                      </span>
-                    </div>
-
-                    {/* Quiz info */}
-                    <div className="vaq-card-icon" aria-hidden="true">
-                      <DocumentIcon />
-                    </div>
-                    <h2 className="vaq-card-name">{qz.name}</h2>
-                    <p className="vaq-card-workspace">{qz.workspace}</p>
-
-                    {/* Meta pills */}
-                    <div className="vaq-meta-row">
-                      <span className="vaq-meta-pill">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        {qz.timeTaken}
-                      </span>
-                      <span className="vaq-meta-pill">
-                        {qz.fraction} correct
-                      </span>
-                    </div>
-
-                    <p className="vaq-card-date">{qz.date}</p>
-
-                    {/* Retake button */}
-                    <button
-                      className="vaq-retake-btn"
-                      id={`vaq-retake-${qz.id ?? idx}`}
-                    >
-                      Retake Quiz
-                    </button>
-                  </div>
+                  <QuizCard
+                    score={qz.score}
+                    name={qz.name}
+                    workspace={qz.workspace}
+                    timeTaken={qz.timeTaken}
+                    fraction={qz.fraction}
+                    date={qz.date}
+                    id={qz.id}
+                    idx={idx}
+                  />
                 ))}
               </div>
             ) : (

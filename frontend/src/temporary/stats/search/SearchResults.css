@@ -1,0 +1,375 @@
+/* ============================================================
+   SearchResults.css – styles for the search results page
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+.sr-root {
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  background: #f5f4ff;
+  color: #1e1b4b;
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-page-body {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+}
+
+/* ── Toolbar: count text + filter pills ─────────────────── */
+.sr-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sr-count-text {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ── Filter row ──────────────────────────────────────────── */
+.sr-filter-row {
+  display: flex;
+  gap: 20px;
+  height: 30px;
+  flex-wrap: wrap;
+}
+
+.sr-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: 100px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 100px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  justify-content: center;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sr-filter-btn svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+}
+
+.sr-filter-btn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.sr-filter-btn.active {
+  border-color: #7c3aed;
+  background: #7c3aed;
+  color: #fff;
+}
+
+.sr-filter-btn.active svg {
+  opacity: 1;
+  stroke: #fff;
+}
+
+.sr-filter-count {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 100px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sr-filter-btn:not(.active) .sr-filter-count {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ── Results grid ────────────────────────────────────────── */
+.sr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+/* ── Shared card shell ───────────────────────────────────── */
+.sr-card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.sr-card-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.sr-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+/* Type badges */
+.sr-type-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 3px 9px;
+  border-radius: 100px;
+}
+
+.sr-type-ws {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+
+.sr-type-quiz {
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+}
+
+/* Subject tag */
+.sr-subject-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sr-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e1b4b;
+  line-height: 1.35;
+}
+
+.sr-card-meta {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* ── Workspace card specifics ────────────────────────────── */
+.sr-ws-accent {
+  height: 4px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.sr-ws-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.sr-ws-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Progress bar */
+.sr-progress-section {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sr-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sr-progress-label {
+  color: #6b7280;
+}
+
+.sr-progress-track {
+  height: 5px;
+  background: #f3f4f6;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.sr-progress-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+
+/* ── Quiz card specifics ─────────────────────────────────── */
+.sr-quiz-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(5, 150, 105, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.sr-quiz-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sr-score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sr-score-pct {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+
+.sr-score-frac {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.sr-score-bar-track {
+  flex: 1;
+  height: 5px;
+  background: #f3f4f6;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.sr-score-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+
+/* ── Open / View button ──────────────────────────────────── */
+.sr-open-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sr-open-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+/* ── Skeleton shimmer ────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.sr-skeleton {
+  pointer-events: none;
+}
+
+.sr-skel-strip {
+  height: 4px;
+  background: #e5e7eb;
+}
+
+.sr-skel-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaf0 50%, #f3f4f6 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.sr-skel-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaf0 50%, #f3f4f6 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.sr-skel-tag   { height: 10px; width: 50px; }
+.sr-skel-title { height: 14px; width: 85%; }
+.sr-skel-meta  { height: 10px; width: 65%; }
+.sr-skel-bar   { height: 5px; }
+.sr-skel-btn   { height: 36px; border-radius: 10px; margin-top: 8px; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.sr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 32px;
+  gap: 12px;
+}
+
+.sr-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(124, 58, 237, 0.06);
+  color: #7c3aed;
+}
+
+.sr-empty-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.sr-empty-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.sr-empty-sub {
+  font-size: 13px;
+  color: #6b7280;
+}
