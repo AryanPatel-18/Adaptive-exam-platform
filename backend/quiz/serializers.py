@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from processing.models import QuestionOption
-from quiz.models import Quiz, QuizAttempt, QuizQuestion
+from quiz.models import Quiz, QuizAttempt, QuizQuestion, QuizAttemptAnswer
 
 
 class CreateQuizSerializer(serializers.Serializer):
@@ -29,6 +29,7 @@ class QuizQuestionSerializer(serializers.ModelSerializer):
     question_id = serializers.SerializerMethodField()
     question_text = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
+    selected_option_id = serializers.SerializerMethodField()
 
     class Meta:
         model = QuizQuestion
@@ -37,6 +38,7 @@ class QuizQuestionSerializer(serializers.ModelSerializer):
             "question_id",
             "question_text",
             "options",
+            "selected_option_id",
         )
 
     def get_question_id(self, obj):
@@ -50,6 +52,18 @@ class QuizQuestionSerializer(serializers.ModelSerializer):
             obj.question.options.all(),
             many=True,
         ).data
+
+    def get_selected_option_id(self, obj):
+        attempt = self.context.get("attempt")
+        if not attempt:
+            return None
+        answer = QuizAttemptAnswer.objects.filter(
+            attempt=attempt,
+            question=obj.question
+        ).first()
+        if answer and answer.selected_option_id:
+            return str(answer.selected_option_id)
+        return None
 
 
 class QuestionOptionSerializer(serializers.ModelSerializer):
@@ -69,6 +83,7 @@ class StartQuizSerializer(serializers.ModelSerializer):
             "id",
             "attempt_number",
             "started_at",
+            "time_spent_seconds",
         )
         read_only_fields = fields
 
@@ -76,6 +91,10 @@ class StartQuizSerializer(serializers.ModelSerializer):
 class SubmitAnswerSerializer(serializers.Serializer):
     question_id = serializers.UUIDField()
     selected_option_id = serializers.UUIDField()
+    time_spent_seconds = serializers.IntegerField(min_value=0, default=0)
+
+class PauseQuizSerializer(serializers.Serializer):
+    time_spent_seconds = serializers.IntegerField(min_value=0, default=0)
 
 
 class QuizResultSerializer(serializers.ModelSerializer):
@@ -94,11 +113,4 @@ class QuizResultSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_time_taken_seconds(self, obj):
-        if obj.completed_at is None:
-            return None
-
-        return int(
-            (
-                obj.completed_at - obj.started_at
-            ).total_seconds()
-        )
+        return obj.time_spent_seconds

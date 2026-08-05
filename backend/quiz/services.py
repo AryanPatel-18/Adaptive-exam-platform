@@ -113,6 +113,38 @@ class QuizAttemptService:
         return attempt
 
     @staticmethod
+    def resume_attempt(
+        *,
+        quiz_id,
+        user,
+    ):
+        quiz = QuizSelector.get_quiz_for_user(
+            quiz_id=quiz_id,
+            user=user,
+        )
+        attempt = AttemptSelector.get_latest_attempt(
+            quiz=quiz,
+            user=user,
+        )
+        if not attempt or attempt.status != QuizAttempt.Status.IN_PROGRESS:
+            raise InvalidQuizSubmissionException()
+        return attempt
+
+    @staticmethod
+    @transaction.atomic
+    def pause_attempt(
+        *,
+        attempt,
+        time_spent_seconds,
+    ):
+        if attempt.status != QuizAttempt.Status.IN_PROGRESS:
+            raise InvalidQuizSubmissionException()
+
+        attempt.time_spent_seconds += time_spent_seconds
+        attempt.save(update_fields=["time_spent_seconds", "updated_at"])
+        return attempt
+
+    @staticmethod
     def get_question(
         *,
         attempt,
@@ -126,11 +158,7 @@ class QuizAttemptService:
             order=question_order,
         )
 
-        if AttemptAnswerSelector.question_answered(
-            attempt=attempt,
-            question=quiz_question.question,
-        ):
-            raise QuestionAlreadyAnsweredException()
+
 
         # Record loaded_at when the question is first retrieved
         QuizAttemptAnswer.objects.get_or_create(
@@ -150,6 +178,7 @@ class QuizAttemptService:
         attempt,
         question_id,
         selected_option_id,
+        time_spent_seconds=0,
     ):
         if attempt.status == attempt.Status.COMPLETED:
             raise QuizAlreadyCompletedException()
@@ -195,14 +224,20 @@ class QuizAttemptService:
         existing_answer.selected_option = selected_option
         existing_answer.answered_at = timezone.now()
         existing_answer.is_correct = selected_option.is_correct
+        existing_answer.time_spent_seconds += time_spent_seconds
         existing_answer.save(
             update_fields=[
                 "selected_option",
                 "answered_at",
                 "is_correct",
+                "time_spent_seconds",
                 "updated_at",
             ]
         )
+
+        if time_spent_seconds > 0:
+            attempt.time_spent_seconds += time_spent_seconds
+            attempt.save(update_fields=["time_spent_seconds", "updated_at"])
 
         return existing_answer
 
