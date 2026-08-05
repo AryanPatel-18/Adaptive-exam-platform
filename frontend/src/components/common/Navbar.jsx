@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './Navbar.css';
 import { SearchIcon, BellIcon, PlusIcon, UserIcon, ChevronDownIcon, UploadIcon } from './svg';
+import { useNavigate } from 'react-router-dom';
 
 const LogOutIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -22,8 +23,6 @@ const NAV_LINKS = [
       { id: "create", label: "Create Workspace" },
       { id: "all", label: "View All Workspaces" },
       { id: "recent", label: "Recent Workspaces" },
-      { id: "favorites", label: "Favorites" },
-      { id: "archived", label: "Archived" },
     ],
   },
 ];
@@ -53,10 +52,8 @@ export default function Navbar({
   searchValue = '',
   onSearchChange = () => { },
 }) {
-  // Create Workspace Modal
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState("");
-  const [workspaceFiles, setWorkspaceFiles] = useState([]);
+  const navigate = useNavigate();
+
   return (
     <header className="nav-root ">
       {/* Left – nav links */}
@@ -66,7 +63,13 @@ export default function Navbar({
             <button
               id={`nav-link-${id}`}
               className={`nav-link-btn ${activePage === id ? "active" : ""}`}
-              onClick={() => onNavigate(id)}
+              onClick={() => {
+                if (id === 'home') {
+                  navigate('/dashboard');
+                } else {
+                  onNavigate(id);
+                }
+              }}
             >
               {label}
 
@@ -80,15 +83,19 @@ export default function Navbar({
             {hasDropdown && (
               <div className="dropdown-menu">
                 {dropdown.map(item => (
-                  <>
+                  <React.Fragment key={item.id}>
                     <button
-                      key={item.id}
                       className="dropdown-item"
-                      onClick={() => console.log(item.id)}
+                      onClick={() => {
+                        if (item.id === 'create') navigate('/workspace/create');
+                        if (item.id === 'all') navigate('/workspaces');
+                        if (item.id === 'recent') navigate('/dashboard');
+                      }}
                     >
                       {item.label}
                     </button>
-                    <hr className="dropdown-divider" /></>
+                    <hr className="dropdown-divider" />
+                  </React.Fragment>
                 ))}
               </div>
             )}
@@ -116,7 +123,7 @@ export default function Navbar({
         <button
           id="nav-create-workspace-btn"
           className="nav-create-btn"
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => navigate('/workspace/create')}
         >
           <span className="nav-create-icon"><PlusIcon /></span>
           Create Workspace
@@ -155,107 +162,6 @@ export default function Navbar({
           <LogOutIcon />
         </button>
       </div>
-      {showCreateModal && (
-        <div
-          className="ws-modal-overlay"
-          onClick={() => setShowCreateModal(false)}
-        >
-          <div
-            className="ws-modal-card db-card ws-upload-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="ws-modal-title">
-              Create Workspace
-            </h2>
-
-            <input
-              className="ws-modal-input"
-              placeholder="Workspace Name"
-              value={workspaceName}
-              onChange={(e) => setWorkspaceName(e.target.value)}
-            />
-
-            <div className="ws-cards-grid ws-upload-grid">
-
-              <label className="ws-upload-box">
-
-                <input
-                  hidden
-                  multiple
-                  type="file"
-                  onChange={(e) =>
-                    setWorkspaceFiles(prev => [
-                      ...prev,
-                      ...Array.from(e.target.files)
-                    ])
-                  }
-                />
-
-                <UploadIcon />
-
-                <span>Click to upload files</span>
-
-              </label>
-              <div className="ws-selected-files">
-
-                {workspaceFiles.map((file, index) => (
-
-                  <div
-                    key={index}
-                    className="ws-selected-file"
-                  >
-
-                    <UploadIcon />
-
-                    <span>{file.name}</span>
-
-                    <button
-                      onClick={() =>
-                        setWorkspaceFiles(prev =>
-                          prev.filter((_, i) => i !== index)
-                        )
-                      }>
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="ws-modal-actions">
-
-              <button
-                className="ws-action-btn ws-btn-outline"
-                onClick={() => setShowCreateModal(false)}
-              >
-                Cancel
-              </button>
-
-              <button
-                className="ws-action-btn ws-btn-primary"
-                onClick={() => {
-                  console.log({
-                    workspace: workspaceName,
-                    files: workspaceFiles
-                  });
-
-                  // TODO:
-                  // Create workspace
-                  // Redirect to workspace page
-
-                  setWorkspaceName("");
-                  setWorkspaceFiles([]);
-                  setShowCreateModal(false);
-                }}
-              >
-                Create Workspace
-              </button>
-
-            </div>
-
-          </div>
-        </div>
-      )}
     </header>
   );
 }

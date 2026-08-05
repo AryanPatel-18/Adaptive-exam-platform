@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../api/axios';
 import Navbar from '../common/Navbar';
 import DashboardSidebar from '../common/DashboardSidebar';
 import { WorkspaceIcon, InboxIcon } from '../common/svg';
@@ -23,18 +25,26 @@ function ProgressBar({ value = 0 }) {
   );
 }
 
-// ── Sample workspace data (replace with real API data) ────────────────────────
-const SAMPLE_WORKSPACES = [
-  { id: 1, name: 'Operating Systems Unit 1', lastOpened: '2 hours ago', progress: 78, subject: 'OS', quizCount: 5, fileCount: 3 },
-  { id: 2, name: 'DBMS Normalization', lastOpened: 'Yesterday', progress: 91, subject: 'DBMS', quizCount: 8, fileCount: 4 },
-  { id: 3, name: 'Data Structures - Trees', lastOpened: '3 days ago', progress: 54, subject: 'DSA', quizCount: 6, fileCount: 2 },
-  { id: 4, name: 'Computer Networks - OSI Model', lastOpened: '1 week ago', progress: 35, subject: 'CN', quizCount: 3, fileCount: 5 },
-  { id: 5, name: 'Software Engineering SDLC', lastOpened: '2 weeks ago', progress: 100, subject: 'SE', quizCount: 10, fileCount: 7 },
-  { id: 6, name: 'Theory of Computation', lastOpened: '3 weeks ago', progress: 20, subject: 'TOC', quizCount: 2, fileCount: 1 },
-  { id: 7, name: 'Compiler Design - Parsing', lastOpened: 'Last month', progress: 60, subject: 'CD', quizCount: 4, fileCount: 3 },
-  { id: 8, name: 'Machine Learning Basics', lastOpened: 'Last month', progress: 45, subject: 'ML', quizCount: 7, fileCount: 6 },
-  { id: 9, name: 'Digital Electronics', lastOpened: '2 months ago', progress: 85, subject: 'DE', quizCount: 9, fileCount: 4 },
-];
+function formatLastOpened(isoDateString) {
+  if (!isoDateString) return 'Unknown';
+  const date = new Date(isoDateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 172800) return 'Yesterday';
+  
+  const diffInDays = Math.floor(diffInSeconds / 86400);
+  if (diffInDays < 30) return `${diffInDays} days ago`;
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths === 1) return 'Last month';
+  if (diffInMonths < 12) return `${diffInMonths} months ago`;
+  
+  return 'Over a year ago';
+}
 
 const FILTER_OPTIONS = ['All', 'In Progress', 'Completed', 'Just Started'];
 
@@ -42,44 +52,100 @@ function getFilteredWorkspaces(workspaces, filter, search) {
   let list = workspaces;
   if (search.trim()) {
     list = list.filter(ws =>
-      ws.name.toLowerCase().includes(search.toLowerCase()) ||
-      ws.subject?.toLowerCase().includes(search.toLowerCase())
+      ws.name.toLowerCase().includes(search.toLowerCase())
     );
   }
   switch (filter) {
     case 'Completed': return list.filter(ws => ws.progress === 100);
     case 'In Progress': return list.filter(ws => ws.progress > 0 && ws.progress < 100);
-    case 'Just Started': return list.filter(ws => ws.progress < 20);
+    case 'Just Started': return list.filter(ws => ws.progress === 0);
     default: return list;
   }
 }
 
-/**
- * ViewAllWorkspaces – full page listing all workspaces.
- * Keeps the same Navbar + DashboardSidebar layout as Dashboard.
- *
- * Props mirror the sidebar props from Dashboard:
- *   workspaces, streak, revisions, weekSummary, weeklyGraphImage
- */
 export default function ViewAllWorkspaces({
-  workspaces = SAMPLE_WORKSPACES,
-  streak = { count: 0, daysCompleted: [false, false, false, false, false, false, false] },
-  revisions = [],
-  weekSummary = { avgAccuracy: '--', studyTime: '--' },
-  weeklyGraphImage = '',
   onNavigateBack,
 }) {
+  const [workspaces, setWorkspaces] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activePage, setActivePage] = useState('workspaces');
   const [searchValue, setSearchValue] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [sortBy, setSortBy] = useState('recent');
+  
+  const [dashboardData, setDashboardData] = useState(null);
+  const [graphUrl, setGraphUrl] = useState('');
+  
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchWorkspaces = async () => {
+      try {
+        const response = await api.get('/api/workspace/list/');
+        // Map backend structure to frontend structure
+        const mappedData = response.data.data.map(ws => ({
+          id: ws.id,
+          name: ws.title,
+          lastOpened: formatLastOpened(ws.updated_at),
+          progress: ws.progress || 0,
+          quizCount: ws.quiz_count || 0,
+          fileCount: ws.file_count || 0,
+          updated_at: new Date(ws.updated_at).getTime() // For sorting
+        }));
+        setWorkspaces(mappedData);
+      } catch (err) {
+        console.error("Failed to fetch workspaces", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await api.get('/api/dashboard/stats/');
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      }
+    };
+    
+    const fetchGraph = async () => {
+      try {
+        const response = await api.get('/api/dashboard/weekly-graph/', {
+          responseType: 'blob'
+        });
+        const url = URL.createObjectURL(response.data);
+        setGraphUrl(url);
+      } catch (err) {
+        console.error("Failed to fetch graph", err);
+      }
+    };
+
+    fetchWorkspaces();
+    fetchDashboardStats();
+    fetchGraph();
+    
+    return () => {
+      if (graphUrl) URL.revokeObjectURL(graphUrl);
+    };
+  }, []);
+
+  const streak = dashboardData?.study_streak ? {
+    count: dashboardData.study_streak.count,
+    daysCompleted: dashboardData.study_streak.days_completed
+  } : { count: 0, daysCompleted: [false, false, false, false, false, false, false] };
+
+  const revisions = dashboardData?.upcoming_revision ? [dashboardData.upcoming_revision] : [];
+  
+  const weekSummary = { avgAccuracy: '--', studyTime: '--' }; 
+  const weeklyGraphImage = graphUrl || '';
 
   const filtered = getFilteredWorkspaces(workspaces, activeFilter, searchValue);
 
   const sorted = [...filtered].sort((a, b) => {
     if (sortBy === 'name') return a.name.localeCompare(b.name);
     if (sortBy === 'progress') return b.progress - a.progress;
-    return 0; // 'recent' – keep original order
+    return b.updated_at - a.updated_at; // 'recent' – sort by latest updated_at
   });
 
   return (
@@ -213,6 +279,7 @@ export default function ViewAllWorkspaces({
                       className="va-ws-open-btn"
                       id={`va-open-workspace-${ws.id ?? idx}`}
                       style={{ '--accent': ICON_COLORS[idx % ICON_COLORS.length] }}
+                      onClick={() => navigate(`/workspace/${ws.id}`)}
                     >
                       Open Workspace
                     </button>

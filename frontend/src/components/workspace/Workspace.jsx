@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import api from '../../api/axios';
 import Navbar from '../common/Navbar';
 import Quiz from '../quiz/Quiz';
 import './Workspace.css';
@@ -74,6 +76,8 @@ export default function Workspace({
   workspaceName: initialWorkspaceName = 'My Workspace',
   lastEdited: initialLastEdited = null
 }) {
+  const { id: workspaceId } = useParams();
+  const navigate = useNavigate();
   const [activePage, setActivePage] = useState('workspace');
   const [searchValue, setSearchValue] = useState('');
 
@@ -101,11 +105,197 @@ export default function Workspace({
 
   // Add Files Modal
   const [isAddFilesModalOpen, setIsAddFilesModalOpen] = useState(false);
-  const [filesToUpload, setFilesToUpload] = useState([]);
+  const [questionBankFile, setQuestionBankFile] = useState(null);
+  const [notesFiles, setNotesFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
-  // Dummy arrays to render the empty squares
-  const quizzesTaken = [1, 2, 3];
-  const filesInWorkspace = [1, 2, 3];
+  // Toasts
+  const [toasts, setToasts] = useState([]);
+
+  // Fetched Workspace Data
+  const [workspaceFiles, setWorkspaceFiles] = useState({ question_bank: null, notes: [] });
+  const [workspaceQuizzes, setWorkspaceQuizzes] = useState([]);
+  const [isProcessed, setIsProcessed] = useState(false);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(true);
+  
+  // Processing state
+  const [processingProgress, setProcessingProgress] = useState(null);
+
+  // Poll progress if it's currently processing
+  useEffect(() => {
+    let intervalId;
+
+    const checkProgress = async () => {
+      try {
+        const res = await api.get(`/api/processing/${workspaceId}/progress/`);
+        setProcessingProgress(res.data);
+
+        if (res.data.status === 'COMPLETED' || res.data.status === 'FAILED') {
+          if (intervalId) clearInterval(intervalId);
+          fetchWorkspaceData(); // Refresh to update isProcessed and enable buttons
+        }
+      } catch (err) {
+        // Ignored, maybe no job exists yet
+      }
+    };
+
+    if (processingProgress?.status === 'RUNNING' || processingProgress?.status === 'PENDING') {
+      intervalId = setInterval(checkProgress, 2000);
+    } else {
+      checkProgress(); // Check once on mount or when state changes to non-running
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [workspaceId, processingProgress?.status]);
+
+  const hasFiles = workspaceFiles.question_bank && workspaceFiles.notes.length > 0;
+  const isProcessing = processingProgress?.status === 'RUNNING' || processingProgress?.status === 'PENDING';
+
+  const handleProcessWorkspace = async () => {
+    try {
+      addToast("Starting processing pipeline...", "info");
+      // Set to running immediately before the API call to show the loading bar
+      setProcessingProgress({ status: 'RUNNING', stage: 'INITIALIZING' }); 
+      
+      await api.post(`/api/processing/${workspaceId}/process/`);
+      // The backend now processes this in the background, so we just wait for the interval to pick up progress
+    } catch (err) {
+      console.error(err);
+      addToast(err.response?.data?.message || "Failed to start processing", "error");
+      setProcessingProgress({ status: 'FAILED' });
+    }
+  };
+
+  // Fetch files and quizzes on mount or after successful upload
+  const fetchWorkspaceData = async () => {
+    try {
+      setIsLoadingFiles(true);
+      const [filesRes, quizzesRes, statusRes] = await Promise.all([
+        api.get(`/api/workspace/${workspaceId}/files/`),
+        api.get(`/api/workspace/${workspaceId}/quizzes/`),
+        api.get(`/api/processing/${workspaceId}/status/`).catch(() => ({ data: { is_processed: false } }))
+      ]);
+      setWorkspaceFiles(filesRes.data.data);
+      setWorkspaceQuizzes(quizzesRes.data.data);
+      setIsProcessed(statusRes.data.is_processed);
+    } catch (err) {
+      console.error("Failed to fetch workspace data", err);
+      if (err.response?.status === 404) {
+        addToast("Workspace not found. Redirecting to dashboard...", "error");
+        setTimeout(() => navigate('/dashboard'), 2000);
+      } else if (err.response?.status === 403) {
+        addToast("You don't have permission to view this workspace.", "error");
+        setTimeout(() => navigate('/dashboard'), 2000);
+      } else {
+        addToast("Failed to load workspace data.", "error");
+      }
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkspaceData();
+  }, [workspaceId]);
+
+  const addToast = (message, type = 'info') => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  // Drag and drop states
+  const [isDraggingQB, setIsDraggingQB] = useState(false);
+  const [isDraggingNotes, setIsDraggingNotes] = useState(false);
+
+  const onDragOverQB = (e) => { e.preventDefault(); setIsDraggingQB(true); };
+  const onDragLeaveQB = (e) => { e.preventDefault(); setIsDraggingQB(false); };
+  const onDropQB = (e) => {
+    e.preventDefault();
+    setIsDraggingQB(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
+        setQuestionBankFile(file);
+      }
+    }
+  };
+
+  const onDragOverNotes = (e) => { e.preventDefault(); setIsDraggingNotes(true); };
+  const onDragLeaveNotes = (e) => { e.preventDefault(); setIsDraggingNotes(false); };
+  const onDropNotes = (e) => {
+    e.preventDefault();
+    setIsDraggingNotes(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type === "application/pdf" || f.name.endsWith('.pdf'));
+      setNotesFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!questionBankFile || notesFiles.length === 0) return;
+    setUploading(true);
+    addToast("Creating upload session...", "info");
+    try {
+      const payload = {
+        workspace_id: workspaceId,
+        files: [
+          {
+            filename: questionBankFile.name,
+            role: "QUESTION_BANK",
+            size: questionBankFile.size,
+            content_type: questionBankFile.type
+          },
+          ...notesFiles.map(f => ({
+            filename: f.name,
+            role: "NOTES",
+            size: f.size,
+            content_type: f.type
+          }))
+        ]
+      };
+      
+      const sessionResponse = await api.post('/api/files/upload-request/', payload);
+      const data = sessionResponse.data?.data || sessionResponse.data;
+      const uploadSessionId = data.upload_session_id;
+      
+      addToast("Uploading files to storage...", "info");
+      
+      const fileMap = { [questionBankFile.name]: questionBankFile };
+      notesFiles.forEach(f => fileMap[f.name] = f);
+
+      let allSuccess = true;
+      for (const instruction of data.files) {
+        const uploadResp = await fetch(instruction.upload_url, {
+          method: "PUT",
+          headers: { "Content-Type": instruction.content_type },
+          body: fileMap[instruction.original_filename]
+        });
+        if (!uploadResp.ok) allSuccess = false;
+      }
+
+      if (!allSuccess) throw new Error('Some files failed to upload to storage.');
+
+      await api.post('/api/files/upload-request/finalize/', {
+        upload_session_id: uploadSessionId
+      });
+
+      setIsAddFilesModalOpen(false);
+      setQuestionBankFile(null);
+      setNotesFiles([]);
+      addToast("Files uploaded successfully!", "success");
+      fetchWorkspaceData(); // Refresh files list
+    } catch (err) {
+      console.error("Upload failed", err);
+      addToast(err.response?.data?.message || err.message || "Upload failed.", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (isQuizActive) {
     return <Quiz onQuit={() => setIsQuizActive(false)} onFinish={() => setIsQuizActive(false)} />;
@@ -154,29 +344,85 @@ export default function Workspace({
             </span>
           </div>
 
+          {/* Processing Spinner Banner */}
+          {isProcessing && (
+            <div className="db-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+              <div style={{ border: '4px solid rgba(59, 130, 246, 0.2)', borderTop: '4px solid #3b82f6', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }}></div>
+              <h3 style={{ marginBottom: '0.5rem', color: '#3b82f6' }}>Processing Workspace...</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Current Stage: <span style={{ fontWeight: 600 }}>{processingProgress?.stage || 'Initializing'}</span></p>
+              <style>{`
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+              `}</style>
+            </div>
+          )}
+
           <div className="ws-sections db-card" id="workspace-content-cards">
             {/* Quizzes Section */}
             <section className="ws-section" id="workspace-quizzes-section">
               <h2 className="ws-section-title">Quizzes</h2>
-              <div className="ws-cards-grid" id="workspace-quizzes-grid">
-                {quizzesTaken.map((item, idx) => (
-                  <div key={`quiz-${idx}`} id={`workspace-quiz-card-${idx}`} className="ws-empty-square">
-                    <span className="ws-empty-icon">{Icon.file}</span>
-                  </div>
-                ))}
-              </div>
+              {isLoadingFiles ? (
+                <div style={{ color: '#a1a1aa' }}>Loading quizzes...</div>
+              ) : (
+                <div className="ws-cards-grid" id="workspace-quizzes-grid">
+                  {workspaceQuizzes.map((quiz) => (
+                    <div key={quiz.id} className="ws-empty-square" style={{ borderColor: '#3b82f6', background: 'rgba(59, 130, 246, 0.03)' }} title={quiz.title}>
+                      <span className="ws-empty-icon" style={{ color: '#3b82f6' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      </span>
+                      <div style={{ position: 'absolute', bottom: '10px', width: '90%', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {quiz.title}
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: '#a1a1aa', marginTop: '2px' }}>
+                          {quiz.total_questions} Questions
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Empty state if nothing uploaded */}
+                  {workspaceQuizzes.length === 0 && (
+                    <div style={{ color: '#6b7280', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
+                      No quizzes created yet. Click "Take quiz" to get started.
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* Files Section */}
             <section className="ws-section" id="workspace-files-section">
               <h2 className="ws-section-title">Material</h2>
-              <div className="ws-cards-grid" id="workspace-files-grid">
-                {filesInWorkspace.map((item, idx) => (
-                  <div key={`file-${idx}`} id={`workspace-file-card-${idx}`} className="ws-empty-square">
-                    <span className="ws-empty-icon">{Icon.file}</span>
-                  </div>
-                ))}
-              </div>
+              {isLoadingFiles ? (
+                <div style={{ color: '#a1a1aa' }}>Loading files...</div>
+              ) : (
+                <div className="ws-cards-grid" id="workspace-files-grid">
+                  {/* Render Question Bank */}
+                  {workspaceFiles.question_bank && (
+                    <div className="ws-empty-square" style={{ borderColor: '#10b981', background: 'rgba(16, 185, 129, 0.03)' }} title={workspaceFiles.question_bank.original_filename}>
+                      <span className="ws-empty-icon" style={{ color: '#10b981' }}>{Icon.file}</span>
+                      <span style={{ position: 'absolute', bottom: '10px', fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>Question Bank</span>
+                    </div>
+                  )}
+
+                  {/* Render Notes */}
+                  {workspaceFiles.notes.map((note) => (
+                    <div key={note.id} className="ws-empty-square" title={note.original_filename}>
+                      <span className="ws-empty-icon">{Icon.file}</span>
+                      <span style={{ position: 'absolute', bottom: '10px', fontSize: '0.75rem', color: '#8b5cf6', fontWeight: 600, width: '90%', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {note.original_filename}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Empty state if nothing uploaded */}
+                  {!workspaceFiles.question_bank && workspaceFiles.notes.length === 0 && (
+                    <div style={{ color: '#6b7280', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
+                      No materials uploaded yet. Click "Add files" to get started.
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           </div>
 
@@ -189,9 +435,12 @@ export default function Workspace({
           <section className="db-card ws-sidebar-card ws-sidebar-single-card" id="workspace-actions-card">
             <div className="ws-sidebar-top-actions">
               <button
-                className="ws-action-btn ws-btn-primary"
+                className={`ws-action-btn ws-btn-primary ${!isProcessed ? 'disabled' : ''}`}
                 id="btn-take-quiz"
                 onClick={() => setIsQuizActive(true)}
+                disabled={!isProcessed}
+                title={!isProcessed ? "Workspace must be processed before taking a quiz" : ""}
+                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.play}</span> Take quiz
               </button>
@@ -210,6 +459,19 @@ export default function Workspace({
             </div>
 
             <div className="ws-sidebar-bottom-actions">
+              <button
+                className={`ws-action-btn ws-btn-primary ${!hasFiles || isProcessing ? 'disabled' : ''}`}
+                id="btn-process-workspace"
+                onClick={handleProcessWorkspace}
+                disabled={!hasFiles || isProcessing}
+                style={(!hasFiles || isProcessing) ? { opacity: 0.5, cursor: 'not-allowed', width: '100%', marginBottom: '1rem' } : { width: '100%', marginBottom: '1rem' }}
+              >
+                <span className="ws-btn-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                </span>
+                {isProcessing ? 'Processing...' : 'Process Workspace'}
+              </button>
+              
               <button
                 className="ws-action-btn ws-btn-outline"
                 id="btn-edit-workspace-name"
@@ -235,89 +497,101 @@ export default function Workspace({
       {isAddFilesModalOpen && (
         <div
           className="ws-modal-overlay"
-          onClick={() => setIsAddFilesModalOpen(false)}
+          onClick={() => !uploading && setIsAddFilesModalOpen(false)}
         >
           <div
             className="ws-modal-card db-card ws-upload-modal"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="ws-modal-title">
-              Add Files
-            </h2>
-
-            <label className="ws-upload-box">
-
-              <input
-                hidden
-                multiple
-                type="file"
-                onChange={(e) =>
-                  setFilesToUpload(prev => [
-                    ...prev,
-                    ...Array.from(e.target.files)
-                  ])
-                }
-              />
-
-              {Icon.file}
-
-              <span>Click to upload files</span>
-
-            </label>
-
-            <div className="ws-selected-files">
-
-              {filesToUpload.map((file, index) => (
-
-                <div
-                  key={index}
-                  className="ws-selected-file"
-                >
-
-                  {Icon.file}
-
-                  <span>{file.name}</span>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFilesToUpload(prev =>
-                        prev.filter((_, i) => i !== index)
-                      )
-                    }
-                  >
-                    ✕
-                  </button>
-
+            <h2 className="ws-modal-title">Upload Materials</h2>
+            <p className="ws-modal-subtitle">Drag and drop your PDFs below</p>
+            
+            <div className="ws-upload-sections">
+              
+              {/* Question Bank Zone */}
+              <div className="ws-upload-section">
+                <div className="ws-upload-section-header">
+                  <h3>Question Bank</h3>
+                  <span className="ws-badge">Single PDF</span>
                 </div>
+                
+                {questionBankFile ? (
+                  <div className="ws-file-chip">
+                    <span className="ws-file-icon">{Icon.file}</span>
+                    <span className="ws-file-name" title={questionBankFile.name}>{questionBankFile.name}</span>
+                    <button className="ws-file-remove" onClick={() => setQuestionBankFile(null)}>✕</button>
+                  </div>
+                ) : (
+                  <label 
+                    className={`ws-dropzone ${isDraggingQB ? 'drag-active' : ''}`}
+                    onDragOver={onDragOverQB}
+                    onDragLeave={onDragLeaveQB}
+                    onDrop={onDropQB}
+                  >
+                    <input type="file" accept=".pdf" disabled={uploading} hidden onChange={(e) => setQuestionBankFile(e.target.files[0] || null)} />
+                    <div className="ws-dropzone-content">
+                      <span className="ws-dropzone-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      </span>
+                      <p className="ws-dropzone-text">Click to browse or drag file here</p>
+                    </div>
+                  </label>
+                )}
+              </div>
 
-              ))}
+              {/* Notes Zone */}
+              <div className="ws-upload-section">
+                <div className="ws-upload-section-header">
+                  <h3>Study Notes</h3>
+                  <span className="ws-badge">Multiple PDFs</span>
+                </div>
+                
+                <label 
+                  className={`ws-dropzone ${isDraggingNotes ? 'drag-active' : ''}`}
+                  onDragOver={onDragOverNotes}
+                  onDragLeave={onDragLeaveNotes}
+                  onDrop={onDropNotes}
+                >
+                  <input type="file" accept=".pdf" multiple disabled={uploading} hidden onChange={(e) => setNotesFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+                  <div className="ws-dropzone-content">
+                    <span className="ws-dropzone-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </span>
+                    <p className="ws-dropzone-text">Click to browse or drag files here</p>
+                  </div>
+                </label>
+                
+                {notesFiles.length > 0 && (
+                  <div className="ws-file-list">
+                    {notesFiles.map((f, i) => (
+                      <div key={i} className="ws-file-chip">
+                        <span className="ws-file-icon">{Icon.file}</span>
+                        <span className="ws-file-name" title={f.name}>{f.name}</span>
+                        <button className="ws-file-remove" onClick={() => setNotesFiles(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
             </div>
 
             <div className="ws-modal-actions">
-
               <button
                 className="ws-action-btn ws-btn-outline"
                 onClick={() => setIsAddFilesModalOpen(false)}
+                disabled={uploading}
               >
                 Cancel
               </button>
-
               <button
                 className="ws-action-btn ws-btn-primary"
-                onClick={() => {
-                  console.log(filesToUpload);
-
-                  setFilesToUpload([]);
-                  setIsAddFilesModalOpen(false);
-                }}
+                onClick={handleUpload}
+                disabled={uploading || !questionBankFile || notesFiles.length === 0}
               >
-                Upload
+                {uploading ? 'Uploading...' : 'Upload Files'}
               </button>
-
             </div>
-
           </div>
         </div>
       )}
@@ -372,6 +646,18 @@ export default function Workspace({
           </div>
         </div>
       )}
+
+      {/* ── Toasts ── */}
+      <div className="ws-toast-container">
+        {toasts.map(toast => (
+          <div key={toast.id} className={`ws-toast ws-toast-${toast.type}`}>
+            {toast.type === 'success' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>}
+            {toast.type === 'error' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>}
+            {toast.type === 'info' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>}
+            <span>{toast.message}</span>
+          </div>
+        ))}
+      </div>
 
     </div>
   );

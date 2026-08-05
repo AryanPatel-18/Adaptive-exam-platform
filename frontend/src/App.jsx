@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './components/home/Dashboard';
 import Workspace from './components/workspace/Workspace';
+import CreateWorkspace from './components/workspace/CreateWorkspace';
 import Quiz from './components/quiz/Quiz';
 import ViewAllWorkspaces from './components/workspace/ViewAllWorkspaces';
 import ViewAllQuizzes from './components/quiz/ViewAllQuizzes';
@@ -127,6 +128,15 @@ function App() {
               {...sharedProps}
               onNavigateBack={() => navigate('/dashboard')}
             />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace/create"
+        element={
+          <ProtectedRoute>
+            <CreateWorkspace />
           </ProtectedRoute>
         }
       />
