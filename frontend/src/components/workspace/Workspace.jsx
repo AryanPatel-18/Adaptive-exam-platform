@@ -87,7 +87,7 @@ export default function Workspace({
     initialLastEdited || new Date().toISOString()
   );
   const [isDeleted, setIsDeleted] = useState(false);
-  const [isQuizActive, setIsQuizActive] = useState(false);
+  const [activeQuiz, setActiveQuiz] = useState(null);
   const [, setTick] = useState(0);
 
   // Auto-refresh relative time display every 30s
@@ -101,7 +101,15 @@ export default function Workspace({
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCreateQuizModalOpen, setIsCreateQuizModalOpen] = useState(false);
+  const [isStartQuizModalOpen, setIsStartQuizModalOpen] = useState(false);
+  const [isContinueQuizModalOpen, setIsContinueQuizModalOpen] = useState(false);
   const [editNameValue, setEditNameValue] = useState(workspaceName);
+  const [newQuizTitle, setNewQuizTitle] = useState('');
+  const [attemptableQuizzes, setAttemptableQuizzes] = useState([]);
+  const [inProgressQuizzes, setInProgressQuizzes] = useState([]);
+  const [isLoadingAttemptable, setIsLoadingAttemptable] = useState(false);
+  const [isLoadingInProgress, setIsLoadingInProgress] = useState(false);
 
   // Add Files Modal
   const [isAddFilesModalOpen, setIsAddFilesModalOpen] = useState(false);
@@ -165,6 +173,51 @@ export default function Workspace({
       console.error(err);
       addToast(err.response?.data?.message || "Failed to start processing", "error");
       setProcessingProgress({ status: 'FAILED' });
+    }
+  };
+
+  const handleCreateQuiz = async () => {
+    try {
+      addToast("Creating quiz...", "info");
+      await api.post('/api/quiz/create/', {
+        workspace_id: workspaceId,
+        title: newQuizTitle || `Quiz - ${new Date().toLocaleString()}`,
+        question_count: 50
+      });
+      addToast("Quiz created successfully!", "success");
+      setIsCreateQuizModalOpen(false);
+      fetchWorkspaceData();
+    } catch (err) {
+      console.error(err);
+      addToast(err.response?.data?.message || "Failed to create quiz", "error");
+    }
+  };
+
+  const handleStartQuizClick = async () => {
+    setIsStartQuizModalOpen(true);
+    setIsLoadingAttemptable(true);
+    try {
+      const res = await api.get(`/api/quiz/workspace/${workspaceId}/attemptable/`);
+      setAttemptableQuizzes(res.data);
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to load attemptable quizzes", "error");
+    } finally {
+      setIsLoadingAttemptable(false);
+    }
+  };
+
+  const handleContinueQuizClick = async () => {
+    setIsContinueQuizModalOpen(true);
+    setIsLoadingInProgress(true);
+    try {
+      const res = await api.get(`/api/quiz/workspace/${workspaceId}/in-progress/`);
+      setInProgressQuizzes(res.data);
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to load in-progress quizzes", "error");
+    } finally {
+      setIsLoadingInProgress(false);
     }
   };
 
@@ -297,8 +350,8 @@ export default function Workspace({
     }
   };
 
-  if (isQuizActive) {
-    return <Quiz onQuit={() => setIsQuizActive(false)} onFinish={() => setIsQuizActive(false)} />;
+  if (activeQuiz) {
+    return <Quiz quiz={activeQuiz} workspaceName={workspaceName} onQuit={() => setActiveQuiz(null)} onFinish={() => setActiveQuiz(null)} />;
   }
 
   if (isDeleted) {
@@ -436,23 +489,54 @@ export default function Workspace({
             <div className="ws-sidebar-top-actions">
               <button
                 className={`ws-action-btn ws-btn-primary ${!isProcessed ? 'disabled' : ''}`}
-                id="btn-take-quiz"
-                onClick={() => setIsQuizActive(true)}
+                id="btn-create-quiz"
+                onClick={() => {
+                  setNewQuizTitle(`Quiz - ${new Date().toLocaleString()}`);
+                  setIsCreateQuizModalOpen(true);
+                }}
                 disabled={!isProcessed}
-                title={!isProcessed ? "Workspace must be processed before taking a quiz" : ""}
+                title={!isProcessed ? "Workspace must be processed before creating a quiz" : ""}
                 style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
-                <span className="ws-btn-icon">{Icon.play}</span> Take quiz
+                <span className="ws-btn-icon">{Icon.plus}</span> Create a quiz
+              </button>
+              
+              <button
+                className={`ws-action-btn ws-btn-secondary ${!isProcessed ? 'disabled' : ''}`}
+                id="btn-start-quiz"
+                onClick={handleStartQuizClick}
+                disabled={!isProcessed}
+                title={!isProcessed ? "Workspace must be processed before starting a quiz" : ""}
+                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              >
+                <span className="ws-btn-icon">{Icon.play}</span> Start quiz
+              </button>
+              
+              <button
+                className={`ws-action-btn ws-btn-secondary ${!isProcessed ? 'disabled' : ''}`}
+                id="btn-continue-quiz"
+                onClick={handleContinueQuizClick}
+                disabled={!isProcessed}
+                title={!isProcessed ? "Workspace must be processed before continuing a quiz" : ""}
+                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              >
+                <span className="ws-btn-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 19 22 12 13 5 13 19" />
+                    <polygon points="2 19 11 12 2 5 2 19" />
+                  </svg>
+                </span> Continue quiz
               </button>
               <button
-                className="ws-action-btn ws-btn-secondary"
+                className={`ws-action-btn ws-btn-secondary ${hasFiles ? 'disabled' : ''}`}
                 id="btn-add-files"
-                onClick={() => setIsAddFilesModalOpen(true)}>
-                <span className="ws-btn-icon">{Icon.plus}</span> Add files
+                onClick={() => setIsAddFilesModalOpen(true)}
+                disabled={hasFiles}
+                style={hasFiles ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              >
+                <span className="ws-btn-icon">{Icon.plus}</span> {hasFiles ? 'Files Uploaded' : 'Add files'}
               </button>
-              <button className="ws-action-btn ws-btn-secondary" id="btn-edit-files">
-                <span className="ws-btn-icon">{Icon.edit}</span> Edit files
-              </button>
+
               <button className="ws-action-btn ws-btn-secondary" id="btn-quiz-stats">
                 <span className="ws-btn-icon">{Icon.stats}</span> Quiz stats for WS
               </button>
@@ -642,6 +726,129 @@ export default function Workspace({
                 onClick={() => { setIsDeleted(true); setIsDeleteModalOpen(false); }}
                 id="btn-confirm-delete"
               >Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCreateQuizModalOpen && (
+        <div className="ws-modal-overlay" id="create-quiz-modal-overlay">
+          <div className="ws-modal-card db-card" id="create-quiz-modal">
+            <h2 className="ws-modal-title">Create New Quiz</h2>
+            <p className="ws-modal-text">Enter a title for your new quiz.</p>
+            <input
+              type="text"
+              className="ws-modal-input"
+              value={newQuizTitle}
+              onChange={(e) => setNewQuizTitle(e.target.value)}
+              placeholder="e.g. Midterm Practice"
+              autoFocus
+              style={{ marginTop: '1rem', marginBottom: '1.5rem', width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}
+            />
+            <div className="ws-modal-actions">
+              <button
+                className="ws-action-btn ws-btn-outline"
+                onClick={() => setIsCreateQuizModalOpen(false)}
+              >Cancel</button>
+              <button
+                className="ws-action-btn ws-btn-primary"
+                onClick={handleCreateQuiz}
+                disabled={!newQuizTitle.trim()}
+              >Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isStartQuizModalOpen && (
+        <div className="ws-modal-overlay" id="start-quiz-modal-overlay">
+          <div className="ws-modal-card db-card" id="start-quiz-modal" style={{ maxWidth: '500px' }}>
+            <h2 className="ws-modal-title">Select a Quiz to Start</h2>
+            
+            {isLoadingAttemptable ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>Loading quizzes...</div>
+            ) : attemptableQuizzes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                <p>No attemptable quizzes found.</p>
+                <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>Quizzes may be unavailable if their source material was re-processed.</p>
+              </div>
+            ) : (
+              <div style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {attemptableQuizzes.map(quiz => (
+                  <div key={quiz.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: '#3b82f6', fontSize: '1rem' }}>{quiz.title}</h4>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                        {quiz.actual_question_count} questions
+                      </p>
+                    </div>
+                    <button
+                      className="ws-action-btn ws-btn-primary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', width: 'auto' }}
+                      onClick={() => {
+                        setIsStartQuizModalOpen(false);
+                        setActiveQuiz(quiz);
+                      }}
+                    >
+                      Start
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="ws-modal-actions" style={{ marginTop: '1.5rem' }}>
+              <button
+                className="ws-action-btn ws-btn-outline"
+                onClick={() => setIsStartQuizModalOpen(false)}
+              >Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isContinueQuizModalOpen && (
+        <div className="ws-modal-overlay" id="continue-quiz-modal-overlay">
+          <div className="ws-modal-card db-card" id="continue-quiz-modal" style={{ maxWidth: '500px' }}>
+            <h2 className="ws-modal-title">Select a Quiz to Continue</h2>
+            
+            {isLoadingInProgress ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>Loading quizzes...</div>
+            ) : inProgressQuizzes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                <p>No in-progress quizzes found.</p>
+                <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>You haven't paused any quizzes yet.</p>
+              </div>
+            ) : (
+              <div style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {inProgressQuizzes.map(quiz => (
+                  <div key={quiz.attempt_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.02)' }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: '#3b82f6', fontSize: '1rem' }}>{quiz.title}</h4>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                        Attempt {quiz.attempt_number} • Started {formatTimeAgo(quiz.started_at)}
+                      </p>
+                    </div>
+                    <button
+                      className="ws-action-btn ws-btn-primary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', width: 'auto' }}
+                      onClick={() => {
+                        setIsContinueQuizModalOpen(false);
+                        setActiveQuiz({ ...quiz, isContinuing: true });
+                      }}
+                    >
+                      Continue
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="ws-modal-actions" style={{ marginTop: '1.5rem' }}>
+              <button
+                className="ws-action-btn ws-btn-outline"
+                onClick={() => setIsContinueQuizModalOpen(false)}
+              >Close</button>
             </div>
           </div>
         </div>
