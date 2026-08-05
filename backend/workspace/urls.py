@@ -5,9 +5,17 @@ from .views import (
     UpdateWorkspaceView,
     DeleteWorkspaceView,
     ListUserWorkspacesView,
+    ListWorkspaceFilesView,
+    ListWorkspaceQuizzesView,
+    ListUserWorkspacesDetailsView,
 )
 
 urlpatterns = [
+    path(
+        "list/",
+        ListUserWorkspacesDetailsView.as_view(),
+        name="list-user-workspaces",
+    ),
     path(
         "create/",
         CreateWorkspaceView.as_view(),
@@ -27,5 +35,15 @@ urlpatterns = [
         "list/ids/",
         ListUserWorkspacesView.as_view(),
         name="list-user-workspaces-ids",
+    ),
+    path(
+        "<uuid:workspace_id>/files/",
+        ListWorkspaceFilesView.as_view(),
+        name="list-workspace-files",
+    ),
+    path(
+        "<uuid:workspace_id>/quizzes/",
+        ListWorkspaceQuizzesView.as_view(),
+        name="list-workspace-quizzes",
     ),
 ]

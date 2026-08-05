@@ -18,6 +18,53 @@ from common.choices import ProcessingStatus, ProcessingStage
 from processing.models import ProcessingJob
 from django.utils import timezone
 
+class CheckWorkspaceProcessingStatusView(APIView):
+    def get(self, request: Request, workspace_id: UUID) -> Response:
+        try:
+            workspace = Workspace.objects.get(id=workspace_id, owner=request.user)
+            is_processed = workspace.status == "READY"
+            return Response(
+                {
+                    "is_processed": is_processed,
+                    "status": workspace.status,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Workspace.DoesNotExist:
+            return Response(
+                {"detail": "Workspace not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+class GetWorkspaceProcessingProgressView(APIView):
+    def get(self, request: Request, workspace_id: UUID) -> Response:
+        try:
+            workspace = Workspace.objects.get(id=workspace_id, owner=request.user)
+            
+            latest_job = ProcessingJob.objects.filter(workspace=workspace).order_by('-created_at').first()
+            
+            if not latest_job:
+                return Response(
+                    {"detail": "No processing jobs found for this workspace."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+                
+            return Response(
+                {
+                    "status": latest_job.status,
+                    "stage": latest_job.stage,
+                    "created_at": latest_job.created_at,
+                    "completed_at": latest_job.completed_at,
+                    "failure_reason": latest_job.failure_reason,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Workspace.DoesNotExist:
+            return Response(
+                {"detail": "Workspace not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
 class ProcessWorkspaceView(APIView):
     """
     Process files (question bank and notes) for a workspace.
@@ -58,39 +105,73 @@ class ProcessWorkspaceView(APIView):
             stage=ProcessingStage.INITIALIZED,
         )
 
-        try:
-            logger.info("Question bank processing started for file_id=%s", question_bank_file.id)
-            ProcessingService.process(
-                workspace=workspace,
-                source_file=question_bank_file,
-                job=job,
-            )
-
-            logger.info("Notes processing started for file_id=%s", notes_file.id)
-            ProcessingService.process_notes(
-                workspace=workspace,
-                source_file=notes_file,
-                job=job,
-            )
-
-            job.status = ProcessingStatus.COMPLETED
-            job.stage = ProcessingStage.FINISHED
-            job.completed_at = timezone.now()
-            job.save()
+        import threading
+        
+        def run_pipeline(ws_id, qb_id, notes_id, job_id):
+            from django.utils import timezone
             
-            logger.info("Processing completed successfully for workspace_id=%s", workspace.id)
-        except Exception as exc:
-            job.status = ProcessingStatus.FAILED
-            job.failure_reason = str(exc)
-            job.save()
-            logger.error("Processing failed for workspace_id=%s: %s", workspace.id, exc)
-            raise
+            ws = None
+            # Re-fetch inside thread to ensure fresh connections
+            try:
+                ws = Workspace.objects.get(id=ws_id)
+                qb = File.objects.get(id=qb_id)
+                notes = File.objects.get(id=notes_id)
+                job_instance = ProcessingJob.objects.get(id=job_id)
+                
+                logger.info("Question bank processing started for file_id=%s", qb.id)
+                ProcessingService.process(
+                    workspace=ws,
+                    source_file=qb,
+                    job=job_instance,
+                )
+
+                logger.info("Notes processing started for file_id=%s", notes.id)
+                ProcessingService.process_notes(
+                    workspace=ws,
+                    source_file=notes,
+                    job=job_instance,
+                )
+
+                job_instance.status = ProcessingStatus.COMPLETED
+                job_instance.stage = ProcessingStage.FINISHED
+                job_instance.completed_at = timezone.now()
+                job_instance.save()
+                
+                # Mark workspace as ready
+                ws.status = "READY"
+                ws.save(update_fields=["status"])
+                
+                logger.info("Processing completed successfully for workspace_id=%s", ws.id)
+            except Exception as exc:
+                logger.error("Processing failed for workspace_id=%s: %s", ws_id, exc)
+                
+                # Use filter().update() or first() to avoid UnboundLocalError
+                job_instance = ProcessingJob.objects.filter(id=job_id).first()
+                if job_instance:
+                    job_instance.status = ProcessingStatus.FAILED
+                    job_instance.failure_reason = str(exc)
+                    job_instance.save()
+                
+                if ws:
+                    ws.status = "FAILED"
+                    ws.save(update_fields=["status"])
+                else:
+                    Workspace.objects.filter(id=ws_id).update(status="FAILED")
+
+        # Start processing in a background thread
+        thread = threading.Thread(
+            target=run_pipeline,
+            args=(workspace.id, question_bank_file.id, notes_file.id, job.id)
+        )
+        thread.daemon = True
+        thread.start()
 
         return Response(
             {
-                "detail": "Processing completed successfully.",
+                "detail": "Processing started in background.",
+                "job_id": job.id,
             },
-            status=status.HTTP_200_OK,
+            status=status.HTTP_202_ACCEPTED,
         )
 
     @staticmethod
