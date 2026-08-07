@@ -2,10 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
-from rest_framework.pagination import PageNumberPagination
-from dashboard.services import DashboardService
 from dashboard.serializers import DashboardStatsSerializer, UserActivitySerializer
+from dashboard.services import DashboardService, ActivityLogger
 from dashboard.models import UserActivity
+from dashboard.pagination import StandardResultsSetPagination
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,12 +35,17 @@ class GlobalSearchAPIView(APIView):
             return Response({"results": []})
             
         results = DashboardService.search_workspaces(request.user, query)
+        
+        ActivityLogger.log(
+            user=request.user,
+            action="SEARCH_PERFORMED",
+            description=f"Searched for '{query}' and found {len(results)} results.",
+            metadata={"query": query, "results_count": len(results)}
+        )
+
         return Response({"results": results})
 
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+
 
 class HistoryAPIView(APIView):
     permission_classes = [IsAuthenticated]

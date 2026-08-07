@@ -105,3 +105,19 @@ class LoginSerializer(serializers.Serializer):
             )
 
         return value
+
+class PasswordUpdateSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    confirm_new_password = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        if attrs.get('new_password') != attrs.get('confirm_new_password'):
+            raise serializers.ValidationError({
+                "confirm_new_password": ["Passwords do not match."]
+            })
+        return attrs

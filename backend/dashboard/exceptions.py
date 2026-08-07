@@ -6,6 +6,6 @@ class DashboardException(APIException):
     default_code = "dashboard_error"
 
 class DashboardDataFetchException(DashboardException):
-    status_code = 500
+    status_code = 502
     default_detail = "Failed to fetch dashboard data."
     default_code = "dashboard_fetch_error"

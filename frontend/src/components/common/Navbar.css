@@ -6,12 +6,13 @@
 
 .nav-root {
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 220px;
-  padding: 12px 28px !important;
-  height: auto !important;
-  min-height: 72px;
+  padding: 0 28px !important;
+  height: 72px !important;
+  flex-shrink: 0;
+  box-sizing: border-box;
   width: 100%;
   background: #ffffff;
   border-bottom: 1px solid rgba(124, 58, 237, 0.1);
@@ -24,10 +25,10 @@
 
 /* ── Nav links ─────────────────────────────────────────────── */
 .nav-links {
+  width: 320px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
-  /* buttons fill the navbar height */
   gap: 20px;
 }
 
@@ -80,10 +81,21 @@
   min-width: 200px;
   background: white;
   border-radius: 12px;
-  margin-top: 8px ;
+  margin-top: 8px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, .12);
   display: none;
   z-index: 1000;
+}
+
+/* Invisible bridge to prevent hover loss between link and dropdown */
+.dropdown-menu::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: transparent;
 }
 
 .nav-dropdown:hover .dropdown-menu {
@@ -127,10 +139,9 @@
 } */
 /* ── Search ────────────────────────────────────────────────── */
 .nav-search {
-  flex: 1;
+  width: 360px;
+  flex-shrink: 0;
   display: flex;
-  align-self: center;
-  /* vertically centre within the stretched navbar */
   justify-content: space-around;
   align-items: center;
   background: #f5f4ff;
@@ -139,7 +150,6 @@
   padding: 0 12px;
   gap: 8px;
   height: 38px;
-  max-width: 360px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -186,13 +196,11 @@
 
 /* ── Right actions ─────────────────────────────────────────── */
 .nav-actions {
+  width: 320px;
   display: flex;
+  justify-content: flex-start;
   align-items: center;
-  align-self: center;
-  /* vertically centre within the stretched navbar */
   gap: 10px;
-  margin-left: 20px;
-  flex-shrink: 0;
 }
 
 .nav-create-btn {
@@ -305,8 +313,11 @@
 /* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .nav-root {
-    padding: 0 16px;
-    gap: 10px;
+    padding: 0 16px !important;
+  }
+  .nav-links, .nav-actions {
+    width: auto;
+    padding: 0;
   }
 
   .nav-create-btn span:last-child {

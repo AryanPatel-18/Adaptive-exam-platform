@@ -20,6 +20,7 @@ class PersistenceService:
     Persists extracted processing data to the database.
     """
 
+    # Saving question bank questions and options as well as topics
     @staticmethod
     @transaction.atomic
     def save(

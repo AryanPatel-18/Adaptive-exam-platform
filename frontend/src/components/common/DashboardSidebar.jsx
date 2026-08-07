@@ -83,13 +83,19 @@ export default function DashboardSidebar({
       <section className="db-card db-sidebar-card" id="db-week-overview-card" aria-label="This week overview">
         <h2 className="db-sidebar-title">This Week Overview</h2>
         <div className="db-week-chart-wrap">
-          <img
-            src={weeklyGraphImage}
-            alt="Weekly study overview"
-            className="db-week-chart-image"
-            loading="lazy"
-            draggable={false}
-          />
+          {weeklyGraphImage ? (
+            <img
+              src={weeklyGraphImage}
+              alt="Weekly study overview"
+              className="db-week-chart-image"
+              loading="lazy"
+              draggable={false}
+            />
+          ) : (
+            <div className="db-week-chart-image" style={{ background: '#f3f4f6', height: '120px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+              Loading...
+            </div>
+          )}
           <div className="db-week-x-labels">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
               <span key={d}>{d}</span>

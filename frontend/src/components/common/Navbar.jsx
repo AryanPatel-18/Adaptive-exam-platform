@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import './Navbar.css';
 import { SearchIcon, BellIcon, PlusIcon, UserIcon, ChevronDownIcon, UploadIcon } from './svg';
 import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import api from '../../api/axios';
 
 const LogOutIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -22,7 +24,7 @@ const NAV_LINKS = [
     dropdown: [
       { id: "create", label: "Create Workspace" },
       { id: "all", label: "View All Workspaces" },
-      { id: "recent", label: "Recent Workspaces" },
+      { id: "recent", label: "Recent Workspace" },
     ],
   },
 ];
@@ -47,12 +49,21 @@ export default function Navbar({
   onCreateWorkspace = () => { },
   onNotifications = () => { },
   onProfile = () => { },
-  onLogout = () => { },
+  onLogout = null,
   notificationCount = 0,
   searchValue = '',
   onSearchChange = () => { },
 }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      await logout();
+    }
+  };
 
   return (
     <header className="nav-root ">
@@ -88,10 +99,22 @@ export default function Navbar({
                   <React.Fragment key={item.id}>
                     <button
                       className="dropdown-item"
-                      onClick={() => {
+                      onClick={async () => {
                         if (item.id === 'create') navigate('/workspace/create');
                         if (item.id === 'all') navigate('/workspaces');
-                        if (item.id === 'recent') navigate('/dashboard');
+                        if (item.id === 'recent') {
+                          try {
+                            const res = await api.get('/api/workspace/list/');
+                            const workspaces = res.data?.data || [];
+                            if (workspaces.length > 0) {
+                              navigate(`/workspace/${workspaces[0].id}`);
+                            } else {
+                              navigate('/dashboard');
+                            }
+                          } catch (err) {
+                            navigate('/dashboard');
+                          }
+                        }
                       }}
                     >
                       {item.label}
@@ -136,25 +159,14 @@ export default function Navbar({
           Create Workspace
         </button>
 
-        <span className='space'></span>
-        <button
-          id="nav-notifications-btn"
-          className="nav-icon-btn"
-          aria-label={`Notifications${notificationCount > 0 ? `, ${notificationCount} unread` : ''}`}
-          onClick={onNotifications}
-        >
-          <BellIcon />
-          {notificationCount > 0 && (
-            <span className="nav-badge" aria-hidden="true">{notificationCount}</span>
-          )}
-        </button>
+
 
         <span className='space'></span>
         <button
           id="nav-profile-btn"
           className="nav-avatar-btn"
           aria-label="Profile"
-          onClick={onProfile}
+          onClick={() => { onProfile(); navigate('/profile'); }}
         >
           <UserIcon />
         </button>
@@ -164,7 +176,7 @@ export default function Navbar({
           id="nav-logout-btn"
           className="nav-icon-btn"
           aria-label="Log Out"
-          onClick={onLogout}
+          onClick={handleLogout}
         >
           <LogOutIcon />
         </button>

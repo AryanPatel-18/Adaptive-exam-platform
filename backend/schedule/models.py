@@ -67,3 +67,40 @@ class StudySchedule(BaseModel):
             f"{self.workspace.title} - "
             f"{self.preparedness_score}%"
         )
+
+class ScheduleGenerationJob(BaseModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="schedule_generation_jobs",
+    )
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="schedule_generation_jobs",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        default="PENDING",
+    )
+
+    schedule = models.ForeignKey(
+        StudySchedule,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="generation_jobs",
+    )
+
+    failure_reason = models.TextField(
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "schedule_generation_jobs"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.workspace.title} - {self.status}"

@@ -3,21 +3,31 @@
    ============================================================ */
 
 .ws-header {
-  font-family: sans-serif;
-  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 80px;
 }
 
 .ws-title {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
   color: #1e1b4b;
-  margin-bottom: 8px;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .ws-meta {
-  font-size: 10px;
-  color: #6b7280;
-  padding-left: 10px;
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .ws-sections {

@@ -1,11 +1,11 @@
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from common.responses import success_response
 from dashboard.services import ActivityLogger
 
 from .exceptions import AuthenticationException
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, PasswordUpdateSerializer
 from .services import AuthenticationService
 
 
@@ -60,5 +60,49 @@ class LoginView(APIView):
                     authentication_data["user"]
                 ).data,
             },
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class UserProfileView(APIView):
+    """
+    Retrieve the authenticated user's profile information.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        
+        return success_response(
+            message="User profile retrieved successfully.",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
+
+class UpdatePasswordView(APIView):
+    """
+    Allow authenticated user to update their password.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            AuthenticationService.update_password(request.user, serializer.validated_data)
+        except AuthenticationException as exc:
+            raise exc
+        
+        ActivityLogger.log(
+            user=request.user,
+            action="PASSWORD_UPDATED",
+            description="User updated their password."
+        )
+
+        return success_response(
+            message="Password updated successfully.",
+            data=None,
             status_code=status.HTTP_200_OK,
         )

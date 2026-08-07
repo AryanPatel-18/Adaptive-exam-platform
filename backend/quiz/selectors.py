@@ -192,3 +192,78 @@ class AttemptAnswerSelector:
             attempt=attempt,
             question=question,
         ).exists()
+
+
+class QuizStatsSelector:
+
+    @staticmethod
+    def get_workspace_quiz_stats(workspace_id, user):
+        from django.db.models import Count, Avg, Sum, Case, When, IntegerField
+
+        quizzes = Quiz.objects.filter(workspace_id=workspace_id, created_by=user)
+        total_quizzes = quizzes.count()
+
+        attempts = QuizAttempt.objects.filter(
+            quiz__workspace_id=workspace_id,
+            user=user,
+            status=QuizAttempt.Status.COMPLETED
+        )
+        total_attempts = attempts.count()
+
+        aggregates = attempts.aggregate(
+            avg_score=Avg('percentage'),
+            total_time=Sum('time_spent_seconds')
+        )
+        avg_score = round(aggregates['avg_score'] or 0, 2)
+        total_time = aggregates['total_time'] or 0
+
+        topic_stats = []
+        topic_performance = QuizAttemptAnswer.objects.filter(
+            attempt__in=attempts
+        ).values(
+            'question__question_topics__topic__name'
+        ).annotate(
+            total=Count('id'),
+            correct=Sum(Case(When(is_correct=True, then=1), default=0, output_field=IntegerField()))
+        ).exclude(
+            question__question_topics__topic__name__isnull=True
+        )
+
+        for tp in topic_performance:
+            t = tp['total']
+            c = tp['correct']
+            topic_stats.append({
+                "topic": tp['question__question_topics__topic__name'],
+                "total_questions": t,
+                "correct": c,
+                "accuracy": round((c / t * 100), 2) if t > 0 else 0
+            })
+
+        hardest = QuizAttemptAnswer.objects.filter(
+            attempt__in=attempts
+        ).values(
+            'question__id', 'question__question_text'
+        ).annotate(
+            total=Count('id'),
+            correct=Sum(Case(When(is_correct=True, then=1), default=0, output_field=IntegerField()))
+        ).filter(total__gt=0).order_by('correct')[:5]
+
+        hardest_questions = []
+        for h in hardest:
+            t = h['total']
+            c = h['correct']
+            hardest_questions.append({
+                "question": h['question__question_text'],
+                "accuracy": round((c / t * 100), 2)
+            })
+
+        return {
+            "overview": {
+                "total_quizzes": total_quizzes,
+                "total_attempts": total_attempts,
+                "average_score": avg_score,
+                "total_time_spent_seconds": total_time,
+            },
+            "topics": topic_stats,
+            "hardest_questions": hardest_questions,
+        }

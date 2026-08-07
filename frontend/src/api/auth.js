@@ -92,3 +92,29 @@ export const logoutUser = async () => {
   // on the network layer.
   return Promise.resolve();
 };
+
+/**
+ * Fetch the authenticated user's profile details.
+ *
+ * @returns {Promise<Object>} Backend envelope:
+ *   { success, message, data: { id, username, email, account_status, created_at } }
+ */
+export const getUserProfile = async () => {
+  const response = await api.get("/api/auth/me/");
+  return response.data;
+};
+
+/**
+ * Update the authenticated user's password.
+ *
+ * @param {Object} data
+ * @param {string} data.current_password
+ * @param {string} data.new_password
+ * @param {string} data.confirm_new_password
+ *
+ * @returns {Promise<Object>} Backend envelope
+ */
+export const updatePassword = async (data) => {
+  const response = await api.post("/api/auth/password/update/", data);
+  return response.data;
+};

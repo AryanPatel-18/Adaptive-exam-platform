@@ -49,8 +49,8 @@ class DashboardSelector:
         ).aggregate(
             total_time=Sum(
                 ExpressionWrapper(
-                    F('answered_at') - F('loaded_at'),
-                    output_field=DurationField()
+                    F('answered_at') - F('loaded_at'), # This tells SQL to compute the information on its own
+                    output_field=DurationField() # This makes sure that the return field is duration field
                 )
             )
         )
@@ -91,7 +91,6 @@ class DashboardSelector:
     def get_study_streak(user):
         active_dates = set()
         
-        # We'll use TruncDate for timezone awareness if needed, but since we just want local dates we can use __date
         workspaces_dates = Workspace.objects.filter(owner=user).values_list('created_at__date', flat=True)
         quizzes_dates = Quiz.objects.filter(created_by=user).values_list('created_at__date', flat=True)
         attempts_dates = QuizAttempt.objects.filter(user=user).values_list('started_at__date', flat=True)
@@ -132,13 +131,13 @@ class DashboardSelector:
         }
 
     @staticmethod
-    def get_recent_workspaces(user, limit=2):
+    def get_recent_workspaces(user, limit=3):
         return Workspace.objects.filter(
             owner=user
         ).order_by('-created_at')[:limit]
 
     @staticmethod
-    def get_recent_quizzes(user, limit=2):
+    def get_recent_quizzes(user, limit=3):
         return Quiz.objects.filter(
             created_by=user
         ).order_by('-created_at')[:limit]

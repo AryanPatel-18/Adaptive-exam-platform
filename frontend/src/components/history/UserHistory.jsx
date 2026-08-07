@@ -68,9 +68,15 @@ const UserHistory = () => {
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   return (
     <div className="uh-layout">
-      <Navbar activePage="history" />
+      <Navbar 
+        activePage="history" 
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
       
       <div className="uh-main-container">
         <div className="uh-content">

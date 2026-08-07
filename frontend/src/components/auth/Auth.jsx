@@ -308,24 +308,6 @@ export default function Auth() {
                   </div>
                 </div>
 
-                {/* Remember me / Forgot Password (login only) */}
-                <div className={`auth-field-transition ${!isSignUp ? 'expanded' : 'collapsed'}`}>
-                  <div className="auth-extra-options">
-                    <label className="auth-remember-me">
-                      <input
-                        type="checkbox" name="rememberMe"
-                        className="auth-checkbox"
-                        checked={formData.rememberMe}
-                        onChange={handleInputChange}
-                        tabIndex={!isSignUp ? 0 : -1}
-                      />
-                      Remember me
-                    </label>
-                    <a href="#forgot" className="auth-forgot-link" onClick={(e) => e.preventDefault()} tabIndex={!isSignUp ? 0 : -1}>
-                      Forgot Password?
-                    </a>
-                  </div>
-                </div>
 
                 <button type="submit" className="auth-submit-btn" disabled={isLoading} key={isSignUp ? 'signup-btn' : 'login-btn'}>
                   {isLoading ? <span className="auth-btn-spinner"/> : <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>}

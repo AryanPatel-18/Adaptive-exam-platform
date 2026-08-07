@@ -56,10 +56,6 @@ class FilesService:
 
     provider = MinIOProvider()
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     @staticmethod
     @transaction.atomic
     def create_upload_session(

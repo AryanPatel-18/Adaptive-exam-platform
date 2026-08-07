@@ -38,6 +38,7 @@ class QuestionBankExtractor(BaseExtractor):
         "option4",
     ]
 
+    # Main function that extracts data from the question bank
     def extract(self, file_path: Path) -> ExtractionResult:
         """
         Extract all questions from a question bank PDF.
@@ -103,9 +104,12 @@ class QuestionBankExtractor(BaseExtractor):
         )
         return result
 
+    # Reading pdfs using Camelot
     def _read_pdf(self, file_path: Path):
         """
         Read the supplied PDF using Camelot with lattice flavor.
+
+        We are using Camelot since that is specialized for this type of table and grid like structure extraction
 
         Args:
             file_path: Absolute path to the PDF.
@@ -136,6 +140,7 @@ class QuestionBankExtractor(BaseExtractor):
                 f"Failed to read PDF '{file_path.name}'."
             ) from exc
 
+    # Parses the dataframe into extracted questions
     def _parse_table(self, dataframe) -> list[ExtractedQuestion]:
         """
         Parse a Camelot dataframe into ExtractedQuestion DTOs.
@@ -176,9 +181,10 @@ class QuestionBankExtractor(BaseExtractor):
 
         return questions
 
+    # Helper function to parse a question
     def _parse_question(self, row) -> ExtractedQuestion | None:
         """
-        Parse a dataframe row into an ExtractedQuestion DTO.
+        Parse a dataframe row into an ExtractedQuestion DTO. 
 
         Args:
             row: A single dataframe row representing one question.
@@ -224,6 +230,7 @@ class QuestionBankExtractor(BaseExtractor):
             options=options,
         )
 
+    # Helper function to check if question is invalid
     def _is_invalid_question(self, question: ExtractedQuestion) -> bool:
         """
         Check if a question is invalid (all options are NaN/empty).
@@ -244,7 +251,8 @@ class QuestionBankExtractor(BaseExtractor):
             str(option.text).strip().lower() == "nan"
             for option in question.options
         )
-
+    
+    # Helper function to parse options
     def _parse_options(
         self,
         raw_options: list[str],

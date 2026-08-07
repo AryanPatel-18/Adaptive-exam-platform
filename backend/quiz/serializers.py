@@ -114,3 +114,28 @@ class QuizResultSerializer(serializers.ModelSerializer):
 
     def get_time_taken_seconds(self, obj):
         return obj.time_spent_seconds
+
+
+class OverviewStatsSerializer(serializers.Serializer):
+    total_quizzes = serializers.IntegerField()
+    total_attempts = serializers.IntegerField()
+    average_score = serializers.FloatField()
+    total_time_spent_seconds = serializers.IntegerField()
+
+
+class TopicPerformanceStatsSerializer(serializers.Serializer):
+    topic = serializers.CharField()
+    total_questions = serializers.IntegerField()
+    correct = serializers.IntegerField()
+    accuracy = serializers.FloatField()
+
+
+class HardestQuestionStatsSerializer(serializers.Serializer):
+    question = serializers.CharField()
+    accuracy = serializers.FloatField()
+
+
+class WorkspaceQuizStatsSerializer(serializers.Serializer):
+    overview = OverviewStatsSerializer()
+    topics = TopicPerformanceStatsSerializer(many=True)
+    hardest_questions = HardestQuestionStatsSerializer(many=True)

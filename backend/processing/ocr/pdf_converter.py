@@ -18,7 +18,7 @@ class PDFToImageConverter:
     """
 
     IMAGE_EXTENSION = ".png"
-    OCR_ZOOM = 3.0
+    OCR_ZOOM = 3.0 # Resolution Multiplier
 
     def convert(
         self,

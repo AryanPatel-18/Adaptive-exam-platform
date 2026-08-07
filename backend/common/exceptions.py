@@ -27,9 +27,7 @@ def custom_exception_handler(exc, context):
     views via ``success_response()``.
     """
 
-    # Let DRF handle its own exceptions first (content negotiation,
-    # renderer selection, etc.)  The returned ``response`` is ``None``
-    # for non-DRF exceptions.
+    # Default Exception handler
     response = exception_handler(exc, context)
 
     # --- Validation errors (serializer / field-level) ----------------

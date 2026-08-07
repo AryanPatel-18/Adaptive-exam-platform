@@ -5,7 +5,7 @@ import Navbar from '../common/Navbar';
 import './ScheduleView.css';
 
 export default function ScheduleView() {
-  const { id: workspaceId, scheduleId } = useParams();
+  const { workspaceId, scheduleId } = useParams();
   const navigate = useNavigate();
 
   const [schedule, setSchedule] = useState(null);
@@ -26,6 +26,31 @@ export default function ScheduleView() {
       setErrorMsg('Failed to load schedule. It may have been deleted or does not exist.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleTopic = async (index, currentStatus) => {
+    const newStatus = !currentStatus;
+    
+    // Optimistic update
+    const updatedSchedule = { ...schedule };
+    if (!updatedSchedule.generated_plan.schedule) return;
+    
+    const updatedTopics = [...updatedSchedule.generated_plan.schedule];
+    updatedTopics[index] = { ...updatedTopics[index], is_completed: newStatus };
+    updatedSchedule.generated_plan.schedule = updatedTopics;
+    
+    setSchedule(updatedSchedule);
+
+    try {
+      await api.patch(`/api/schedule/${scheduleId}/topic/${index}/toggle/`, { is_completed: newStatus });
+    } catch (err) {
+      console.error("Failed to toggle topic:", err);
+      // Revert on failure
+      const revertedTopics = [...updatedTopics];
+      revertedTopics[index] = { ...revertedTopics[index], is_completed: currentStatus };
+      updatedSchedule.generated_plan.schedule = revertedTopics;
+      setSchedule({ ...updatedSchedule });
     }
   };
 
@@ -63,6 +88,7 @@ export default function ScheduleView() {
   const { generated_plan, start_date, end_date } = schedule;
   const summary = generated_plan?.summary || {};
   const topicsList = generated_plan?.schedule || [];
+  const completedCount = topicsList.filter(t => t.is_completed).length;
 
   const getPriorityColor = (priority) => {
     const p = priority?.toLowerCase() || '';
@@ -99,8 +125,10 @@ export default function ScheduleView() {
                 <span className="sv-stat-label">Overall Level</span>
               </div>
               <div className="sv-stat-item">
-                <span className="sv-stat-value" style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>{topicsList.length}</span>
-                <span className="sv-stat-label">Topics to Cover</span>
+                <span className="sv-stat-value" style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>
+                  {completedCount} <span style={{ fontSize: '1rem', color: '#9ca3af', fontWeight: '500' }}>/ {topicsList.length}</span>
+                </span>
+                <span className="sv-stat-label">Topics Completed</span>
               </div>
             </div>
             {summary.recommendation && (
@@ -115,15 +143,29 @@ export default function ScheduleView() {
             {topicsList.map((topic, index) => {
               const colors = getPriorityColor(topic.priority);
               return (
-                <div key={index} className="sv-topic-card db-card">
+                <div key={index} className={`sv-topic-card db-card ${topic.is_completed ? 'completed' : ''}`}>
                   <div className="sv-topic-header">
                     <h3 className="sv-topic-name">{topic.topic}</h3>
-                    <span 
-                      className="sv-topic-priority"
-                      style={{ backgroundColor: colors.bg, color: colors.color, borderColor: colors.border }}
-                    >
-                      {topic.priority || 'Normal'} Priority
-                    </span>
+                    
+                    <div className="sv-topic-actions">
+                      <span 
+                        className="sv-topic-priority"
+                        style={{ backgroundColor: colors.bg, color: colors.color, borderColor: colors.border }}
+                      >
+                        {topic.priority || 'Normal'} Priority
+                      </span>
+                      <div className="sv-toggle-container">
+                        <span className="sv-toggle-label">{topic.is_completed ? 'Completed' : 'Mark Complete'}</span>
+                        <label className="sv-toggle">
+                          <input 
+                            type="checkbox"
+                            checked={!!topic.is_completed}
+                            onChange={() => handleToggleTopic(index, !!topic.is_completed)}
+                          />
+                          <span className="sv-toggle-slider"></span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="sv-topic-bottom">

@@ -204,7 +204,8 @@ export default function Dashboard({
     name: qz.title,
     meta: `${qz.total_questions} Questions`,
     score: qz.score || 0,
-    fraction: `${qz.attempted_questions ?? '--'}/${qz.total_questions}`
+    fraction: `${qz.attempted_questions ?? '--'}/${qz.total_questions}`,
+    workspaceId: qz.workspace
   })) || [];
   
   const stats = dashboardData ? {
@@ -290,7 +291,13 @@ export default function Dashboard({
               <ul className="db-list" role="list">
                 {recentWorkspaces.length > 0 ? (
                   recentWorkspaces.map((ws, idx) => (
-                    <li key={ws.id ?? idx} className="db-list-item" id={`workspace-item-${ws.id ?? idx}`}>
+                    <li 
+                      key={ws.id ?? idx} 
+                      className="db-list-item" 
+                      id={`workspace-item-${ws.id ?? idx}`}
+                      onClick={() => ws.id && navigate(`/workspace/${ws.id}`)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       {/* Workspace icon – use a coloured background square */}
                       <div
                         className="db-item-icon"
@@ -330,7 +337,13 @@ export default function Dashboard({
               <ul className="db-list" role="list">
                 {recentQuizzes.length > 0 ? (
                   recentQuizzes.map((qz, idx) => (
-                    <li key={qz.id ?? idx} className="db-list-item" id={`quiz-item-${qz.id ?? idx}`}>
+                    <li 
+                      key={qz.id ?? idx} 
+                      className="db-list-item" 
+                      id={`quiz-item-${qz.id ?? idx}`}
+                      onClick={() => qz.workspaceId && navigate(`/workspace/${qz.workspaceId}`)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className="db-item-icon db-quiz-icon-bg" aria-hidden="true">
                         <DocumentIcon/>
                       </div>

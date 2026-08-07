@@ -34,6 +34,7 @@ class UserManager(BaseUserManager):
 
         return user
 
+    # This function is to create the superuser
     def create_superuser(self, username, email, password=None, **extra_fields):
         """
         Creates and saves a superuser.

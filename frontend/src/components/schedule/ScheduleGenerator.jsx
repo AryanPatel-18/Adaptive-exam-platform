@@ -22,10 +22,42 @@ export default function ScheduleGenerator() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [jobId, setJobId] = useState(null);
 
   useEffect(() => {
     fetchQuizzes();
   }, [workspaceId]);
+
+  useEffect(() => {
+    let intervalId;
+    if (isGenerating && jobId) {
+      intervalId = setInterval(async () => {
+        try {
+          const res = await api.get(`/api/schedule/job/${jobId}/`);
+          if (res.data.status === 'COMPLETED') {
+            clearInterval(intervalId);
+            setJobId(null);
+            setIsGenerating(false);
+            if (res.data.schedule_id) {
+              navigate(`/workspace/${workspaceId}/schedule/${res.data.schedule_id}`);
+            } else {
+              navigate(`/workspace/${workspaceId}`);
+            }
+          } else if (res.data.status === 'FAILED') {
+            clearInterval(intervalId);
+            setJobId(null);
+            setIsGenerating(false);
+            setErrorMsg(res.data.failure_reason || 'Failed to generate schedule.');
+          }
+        } catch (err) {
+          console.error("Failed to fetch job status", err);
+        }
+      }, 2000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isGenerating, jobId, navigate, workspaceId]);
 
   const fetchQuizzes = async () => {
     setIsLoading(true);
@@ -70,14 +102,15 @@ export default function ScheduleGenerator() {
     setIsGenerating(true);
     setErrorMsg('');
     try {
-      await api.post(`/api/schedule/generate/`, {
+      const res = await api.post(`/api/schedule/generate/`, {
         attempt_id: selectedAttempt.id,
         study_days: parseInt(studyDays, 10),
         hours_per_day: parseFloat(hoursPerDay).toFixed(2),
         start_date: startDate
-      }, { timeout: 300000 }); // 5 minutes timeout for LLM generation
-      // Currently redirects back to workspace on success
-      navigate(`/workspace/${workspaceId}`);
+      });
+      if (res.data.job_id) {
+        setJobId(res.data.job_id);
+      }
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || err.response?.data?.detail || 'Failed to generate schedule.');

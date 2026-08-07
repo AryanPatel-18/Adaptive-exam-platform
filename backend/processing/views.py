@@ -1,5 +1,6 @@
 import logging
 from uuid import UUID
+from dashboard.services import ActivityLogger
 
 logger = logging.getLogger("processing")
 
@@ -165,6 +166,13 @@ class ProcessWorkspaceView(APIView):
         )
         thread.daemon = True
         thread.start()
+
+        ActivityLogger.log(
+            user=request.user,
+            action="WORKSPACE_PROCESSING_STARTED",
+            description=f"Started processing files for workspace '{workspace.title}'.",
+            metadata={"workspace_id": str(workspace.id), "job_id": str(job.id)}
+        )
 
         return Response(
             {

@@ -12,6 +12,7 @@ import Auth from './components/auth/Auth';
 import GlobalSearch from './components/search/GlobalSearch';
 import UserHistory from './components/history/UserHistory';
 import QuizDetail from './components/quiz/QuizDetail';
+import Profile from './components/profile/Profile';
 import useAuth from './hooks/useAuth';
 
 // ─── Route Guards ──────────────────────────────────────────────────────────
@@ -223,6 +224,15 @@ function App() {
               onFinish={handleQuizFinish}
               onQuit={() => navigate('/dashboard')}
             />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         }
       />

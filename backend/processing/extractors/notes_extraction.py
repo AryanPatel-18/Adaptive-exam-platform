@@ -38,10 +38,8 @@ MIN_OCR_CONFIDENCE = 0.3
 POSTPROCESS_WORKERS = max(1, os.cpu_count() - 1)
 
 
-# ============================================================
-# GPU DETECTION
-# ============================================================
 
+# Checking if the gpu is available for processing
 def _detect_gpu() -> bool:
     """Return True if a CUDA-capable GPU is available."""
     try:
@@ -60,22 +58,22 @@ def _detect_gpu() -> bool:
 
 OCR_GPU = _detect_gpu()
 
-
-# ============================================================
-# TEXT HELPERS
-# ============================================================
-
+# Cleans the text after it has been extracted
 def clean_text(text: str) -> str:
-    """Universal whitespace / null-byte normalisation – no word changes."""
+    """
+    It removes null characters and extra spaces from the text.
+    """
     logger.debug("Cleaning text...")
     text = text.replace("\x00", " ")
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n\s*\n+", "\n\n", text)
     return text.strip()
 
-
+# Extracts only the unqiue values
 def unique_preserve_order(items: list[str]) -> list[str]:
-    """Deduplicate a list of strings while preserving insertion order."""
+    """
+    It removes duplicate strings while preserving the order of the first occurrence.
+    """
     logger.debug("Deduplicating list of %d items while preserving order...", len(items))
     seen, out = set(), []
     for item in items:
@@ -85,7 +83,7 @@ def unique_preserve_order(items: list[str]) -> list[str]:
             out.append(item)
     return out
 
-
+# Extracts headings from the given lines
 def looks_like_heading(
     text: str,
     font_size: Optional[float] = None,
@@ -120,11 +118,7 @@ def looks_like_heading(
         and len(text) > 8
     )
 
-
-# ============================================================
-# DIRECT TEXT EXTRACTION (for digitally generated PDFs)
-# ============================================================
-
+# Extractly directly from files if possible without image conversion
 def extract_direct_text(page: fitz.Page) -> tuple[str, list[str]]:
     """
     Extract text directly from a PDF page using PyMuPDF's
@@ -173,12 +167,16 @@ def extract_direct_text(page: fitz.Page) -> tuple[str, list[str]]:
     return raw_text, unique_preserve_order(headings)
 
 
-# ============================================================
-# IMAGE / OCR HELPERS
-# ============================================================
-
+# Converts the pages to matrix for image processing
 def render_page_to_image(page: fitz.Page) -> np.ndarray:
-    """Render a PDF page to a numpy RGB array using PyMuPDF."""
+    """
+    Render a PDF page to a numpy RGB array using PyMuPDF.
+    Args:
+        page: A PyMuPDF Page object.
+
+    Returns:
+        np.ndarray: The rendered page as an RGB image.
+    """
     logger.debug("Rendering PDF page to image at zoom %s...", OCR_ZOOM)
     pix = page.get_pixmap(matrix=fitz.Matrix(OCR_ZOOM, OCR_ZOOM), alpha=False)
     image = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
@@ -189,10 +187,15 @@ def render_page_to_image(page: fitz.Page) -> np.ndarray:
     return image
 
 
+# Processes the image by removing the colour and smoothing it
 def preprocess_for_ocr(image_rgb: np.ndarray) -> dict[str, np.ndarray]:
     """
     Create preprocessed image variants for OCR.
     Lightweight: grayscale + light Gaussian blur.
+
+    Grayscale : Converts the RGB image to grayscale image. It removes the color information from the image.
+    Gaussian blur : Removes the noise and smoothing the image.
+
     """
     logger.debug("Preprocessing image for OCR (grayscale + Gaussian blur)...")
     gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
@@ -200,6 +203,7 @@ def preprocess_for_ocr(image_rgb: np.ndarray) -> dict[str, np.ndarray]:
     return {"gray": gray}
 
 
+# Actually extracts text from each of the images
 def ocr_image(
     image: np.ndarray,
     reader: easyocr.Reader,
@@ -254,10 +258,7 @@ def ocr_image(
     return page_text, unique_preserve_order(headings), avg_conf
 
 
-# ============================================================
-# PER-PAGE EXTRACTION
-# ============================================================
-
+# Extracts one page from the PDF file 
 def extract_page(
     page_number: int,
     page: fitz.Page,
@@ -339,11 +340,7 @@ def extract_page(
         "needs_review": best_conf < 0.75,
     }
 
-
-# ============================================================
-# POST-PROCESSING WORKER (runs inside multiprocessing.Pool)
-# ============================================================
-
+# Post processing for extracted content from a page
 def _postprocess_page(page: dict) -> dict:
     """
     Light, domain-agnostic post-processing:
@@ -366,10 +363,7 @@ def _postprocess_page(page: dict) -> dict:
     }
 
 
-# ============================================================
-# NOTES EXTRACTOR CLASS
-# ============================================================
-
+# Main class to call the extractor functions
 class NotesExtractor:
     """
     Extracts text from notes PDFs using direct text extraction

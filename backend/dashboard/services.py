@@ -52,11 +52,11 @@ class DashboardService:
         
         if np.max(y) == 0:
             y = np.ones(7) * 0.1
-            ax.set_ylim(0, 1)
+            ax.set_ylim(0, 1) # verticle Boundary of the chart
         else:
             ax.set_ylim(0, np.max(y) * 1.2)
             
-        ax.set_xlim(0, 6)
+        ax.set_xlim(0, 6) # Horizontal Boundary of the chart
         
         line_color = '#7c3aed'
         ax.plot(x, y, color=line_color, linewidth=3)
@@ -65,10 +65,10 @@ class DashboardService:
         
         plt.tight_layout(pad=0)
         
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png', transparent=True, bbox_inches='tight', pad_inches=0)
-        buf.seek(0)
-        plt.close(fig)
+        buf = io.BytesIO() # Creating the file and saving inside the RAM
+        fig.savefig(buf, format='png', transparent=True, bbox_inches='tight', pad_inches=0) # Saving the file 
+        buf.seek(0) # Moving the cursor to the beginning of the file
+        plt.close(fig) # Closing the file
         
         return buf.getvalue()
 
@@ -124,7 +124,7 @@ class DashboardService:
                 "workspace_id": str(ws.id),
                 "workspace_title": ws.title,
                 "matched_in": list(matched_in),
-                "matched_values": list(matched_values)[:10], # Return up to 10 matching string values
+                "matched_values": list(matched_values)[:10],
                 "content": {
                     "files": [f.original_filename for f in ws_files],
                     "topics": [t.name for t in ws_topics],

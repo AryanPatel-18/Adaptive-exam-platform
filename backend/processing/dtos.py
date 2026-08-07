@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-
+# Slots true is so that python does not create a dict and use up RAM
 @dataclass(slots=True)
 class ExtractedOption:
     text: str

@@ -85,9 +85,19 @@ class DeleteWorkspaceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, workspace_id):
+        workspace = Workspace.objects.filter(id=workspace_id, owner=request.user).first()
+        title = workspace.title if workspace else "Unknown Workspace"
+
         WorkspaceService.delete_workspace(
             workspace_id=workspace_id,
             owner=request.user,
+        )
+
+        ActivityLogger.log(
+            user=request.user,
+            action="WORKSPACE_DELETED",
+            description=f"Deleted workspace '{title}'.",
+            metadata={"workspace_id": str(workspace_id)}
         )
 
         return success_response(

@@ -62,7 +62,7 @@ const GlobalSearch = ({ username = 'Student' }) => {
             </div>
           ) : (
             <div className="gs-results-grid">
-              {results.map((workspace, idx) => (
+              {results.slice(0, 2).map((workspace, idx) => (
                 <div key={workspace.workspace_id || idx} className="gs-workspace-column">
                   <div className="gs-column-header">
                     <h2>{workspace.workspace_title}</h2>

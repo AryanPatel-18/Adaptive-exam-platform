@@ -128,6 +128,7 @@ class UploadSessionFile(BaseModel):
         blank=True,
     )
 
+    # Unique Identification token generated based on the file hash
     etag = models.CharField(
         max_length=255,
         null=True,
@@ -204,6 +205,7 @@ class File(BaseModel):
         max_length=255,
     )
 
+    # The path of the file inside the MiniIO Provider
     storage_key = models.CharField(
         max_length=1024,
         unique=True,

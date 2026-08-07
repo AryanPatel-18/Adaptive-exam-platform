@@ -32,7 +32,7 @@ function formatTimeAgo(timestamp) {
   return `${years} year${years > 1 ? 's' : ''} ago`;
 }
 
-// ── SVG icon helpers ─────────────────────────────────────────────────────────
+// ── SVG icon helpers ────
 const Icon = {
   edit: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -129,6 +129,9 @@ export default function Workspace({
   
   // Processing state
   const [processingProgress, setProcessingProgress] = useState(null);
+  
+  // Schedule job state
+  const [scheduleJobStatus, setScheduleJobStatus] = useState(null);
 
   // Poll progress if it's currently processing
   useEffect(() => {
@@ -159,8 +162,38 @@ export default function Workspace({
     };
   }, [workspaceId, processingProgress?.status]);
 
+  // Poll schedule generation progress
+  useEffect(() => {
+    let intervalId;
+
+    const checkScheduleProgress = async () => {
+      try {
+        const res = await api.get(`/api/schedule/workspace/${workspaceId}/job/`);
+        setScheduleJobStatus(res.data);
+
+        if (res.data.status === 'COMPLETED' || res.data.status === 'FAILED') {
+          if (intervalId) clearInterval(intervalId);
+          fetchWorkspaceData(); // Refresh to include newly created schedules
+        }
+      } catch (err) {
+        // Ignored
+      }
+    };
+
+    if (scheduleJobStatus?.status === 'RUNNING' || scheduleJobStatus?.status === 'PENDING') {
+      intervalId = setInterval(checkScheduleProgress, 2000);
+    } else {
+      checkScheduleProgress(); // Initial check
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [workspaceId, scheduleJobStatus?.status]);
+
   const hasFiles = workspaceFiles.question_bank && workspaceFiles.notes.length > 0;
   const isProcessing = processingProgress?.status === 'RUNNING' || processingProgress?.status === 'PENDING';
+  const isGeneratingSchedule = scheduleJobStatus?.status === 'RUNNING' || scheduleJobStatus?.status === 'PENDING';
 
   const handleProcessWorkspace = async () => {
     try {
@@ -401,23 +434,36 @@ export default function Workspace({
 
           {/* Workspace Header */}
           <div className="ws-header db-card" id="workspace-header-section">
-            <span>
-              <span className="ws-title" id="workspace-title">{workspaceName}</span>
-              <span className="ws-meta" id="workspace-last-edited">(Last edited: {formatTimeAgo(lastEditedTimestamp)}) </span>
-            </span>
+            <h1 className="ws-title" id="workspace-title">{workspaceName}</h1>
+            <span className="ws-meta" id="workspace-last-edited">Last edited: {formatTimeAgo(lastEditedTimestamp)}</span>
           </div>
 
           {/* Processing Spinner Banner */}
           {isProcessing && (
-            <div className="db-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-              <div style={{ border: '4px solid rgba(59, 130, 246, 0.2)', borderTop: '4px solid #3b82f6', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }}></div>
-              <h3 style={{ marginBottom: '0.5rem', color: '#3b82f6' }}>Processing Workspace...</h3>
-              <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Current Stage: <span style={{ fontWeight: 600 }}>{processingProgress?.stage || 'Initializing'}</span></p>
-              <style>{`
-                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-              `}</style>
+            <div className="ws-processing-banner" style={{ display: 'flex', alignItems: 'center', backgroundColor: '#eff6ff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #bfdbfe', marginBottom: '2rem' }}>
+              <div className="ws-spinner" style={{ marginRight: '1.5rem', width: '30px', height: '30px', borderTopColor: '#3b82f6', borderLeftColor: '#3b82f6', animation: 'spin 1s linear infinite' }}></div>
+              <div>
+                <h3 style={{ marginBottom: '0.5rem', color: '#3b82f6' }}>Processing Workspace...</h3>
+                <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Current Stage: <span style={{ fontWeight: 600 }}>{processingProgress?.stage || 'Initializing'}</span></p>
+              </div>
             </div>
           )}
+
+          {/* Schedule Generating Spinner Banner */}
+          {isGeneratingSchedule && (
+            <div className="ws-processing-banner" style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f0fdf4', padding: '1.5rem', borderRadius: '12px', border: '1px solid #bbf7d0', marginBottom: '2rem' }}>
+              <div className="ws-spinner" style={{ marginRight: '1.5rem', width: '30px', height: '30px', borderTopColor: '#22c55e', borderLeftColor: '#22c55e', animation: 'spin 1s linear infinite' }}></div>
+              <div>
+                <h3 style={{ marginBottom: '0.5rem', color: '#22c55e' }}>Generating Study Schedule...</h3>
+                <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Our AI is analyzing your quiz performance to build a personalized study plan.</p>
+              </div>
+            </div>
+          )}
+          
+          <style>{`
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .ws-spinner { border: 4px solid rgba(0,0,0,0.1); border-radius: 50%; }
+          `}</style>
 
           <div className="ws-sections db-card" id="workspace-content-cards">
             {/* Quizzes Section */}
@@ -521,7 +567,7 @@ export default function Workspace({
                           Study Plan
                         </div>
                         <div className="ws-list-card-subtitle">
-                          Score: {schedule.preparedness_score}%
+                          Score: {schedule.preparedness_score}% • {new Date(schedule.created_at).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
@@ -547,37 +593,37 @@ export default function Workspace({
           <section className="db-card ws-sidebar-card ws-sidebar-single-card" id="workspace-actions-card">
             <div className="ws-sidebar-top-actions">
               <button
-                className={`ws-action-btn ws-btn-primary ${!isProcessed ? 'disabled' : ''}`}
+                className={`ws-action-btn ws-btn-primary ${!isProcessed || isProcessing ? 'disabled' : ''}`}
                 id="btn-create-quiz"
                 onClick={() => {
                   setNewQuizTitle(`Quiz - ${new Date().toLocaleString()}`);
                   setIsCreateQuizModalOpen(true);
                 }}
-                disabled={!isProcessed}
-                title={!isProcessed ? "Workspace must be processed before creating a quiz" : ""}
-                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                disabled={!isProcessed || isProcessing}
+                title={!isProcessed ? "Workspace must be processed before creating a quiz" : isProcessing ? "Processing in progress" : ""}
+                style={!isProcessed || isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.plus}</span> Create a quiz
               </button>
               
               <button
-                className={`ws-action-btn ws-btn-secondary ${!isProcessed ? 'disabled' : ''}`}
+                className={`ws-action-btn ws-btn-secondary ${!isProcessed || isProcessing ? 'disabled' : ''}`}
                 id="btn-start-quiz"
                 onClick={handleStartQuizClick}
-                disabled={!isProcessed}
-                title={!isProcessed ? "Workspace must be processed before starting a quiz" : ""}
-                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                disabled={!isProcessed || isProcessing}
+                title={!isProcessed ? "Workspace must be processed before starting a quiz" : isProcessing ? "Processing in progress" : ""}
+                style={!isProcessed || isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.play}</span> Start quiz
               </button>
               
               <button
-                className={`ws-action-btn ws-btn-secondary ${!isProcessed ? 'disabled' : ''}`}
+                className={`ws-action-btn ws-btn-secondary ${!isProcessed || isProcessing ? 'disabled' : ''}`}
                 id="btn-continue-quiz"
                 onClick={handleContinueQuizClick}
-                disabled={!isProcessed}
-                title={!isProcessed ? "Workspace must be processed before continuing a quiz" : ""}
-                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                disabled={!isProcessed || isProcessing}
+                title={!isProcessed ? "Workspace must be processed before continuing a quiz" : isProcessing ? "Processing in progress" : ""}
+                style={!isProcessed || isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -587,22 +633,22 @@ export default function Workspace({
                 </span> Continue quiz
               </button>
               <button
-                className={`ws-action-btn ws-btn-secondary ${hasFiles ? 'disabled' : ''}`}
+                className={`ws-action-btn ws-btn-secondary ${hasFiles || isProcessing ? 'disabled' : ''}`}
                 id="btn-add-files"
                 onClick={() => setIsAddFilesModalOpen(true)}
-                disabled={hasFiles}
-                style={hasFiles ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                disabled={hasFiles || isProcessing}
+                style={hasFiles || isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.plus}</span> {hasFiles ? 'Files Uploaded' : 'Add files'}
               </button>
 
               <button
-                className={`ws-action-btn ws-btn-secondary ${!isProcessed ? 'disabled' : ''}`}
+                className={`ws-action-btn ws-btn-secondary ${!isProcessed || isProcessing || isGeneratingSchedule ? 'disabled' : ''}`}
                 id="btn-create-schedule"
                 onClick={() => navigate(`/workspace/${workspaceId}/schedule/create`)}
-                disabled={!isProcessed}
-                title={!isProcessed ? "Workspace must be processed before creating a schedule" : ""}
-                style={!isProcessed ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                disabled={!isProcessed || isProcessing || isGeneratingSchedule}
+                title={!isProcessed ? "Workspace must be processed before creating a schedule" : isGeneratingSchedule ? "Generating schedule in progress" : isProcessing ? "Processing in progress" : ""}
+                style={!isProcessed || isProcessing || isGeneratingSchedule ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -615,8 +661,11 @@ export default function Workspace({
               </button>
 
               <button 
-                className="ws-action-btn ws-btn-secondary" 
+                className={`ws-action-btn ws-btn-secondary ${!isProcessed || isProcessing ? 'disabled' : ''}`}
                 onClick={() => navigate(`/workspace/${workspaceId}/quiz-stats`)}
+                disabled={!isProcessed || isProcessing}
+                title={!isProcessed ? "Workspace must be processed to view quiz stats" : isProcessing ? "Processing in progress" : ""}
+                style={!isProcessed || isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.stats}</span> Quiz stats for WS
               </button>
@@ -637,16 +686,20 @@ export default function Workspace({
               </button>
               
               <button
-                className="ws-action-btn ws-btn-outline"
+                className={`ws-action-btn ws-btn-outline ${isProcessing ? 'disabled' : ''}`}
                 id="btn-edit-workspace-name"
                 onClick={() => { setEditNameValue(workspaceName); setIsEditModalOpen(true); }}
+                disabled={isProcessing}
+                style={isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.edit}</span> Edit name
               </button>
               <button
-                className="ws-action-btn ws-btn-danger"
+                className={`ws-action-btn ws-btn-danger ${isProcessing ? 'disabled' : ''}`}
                 id="btn-delete-workspace"
                 onClick={() => setIsDeleteModalOpen(true)}
+                disabled={isProcessing}
+                style={isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
               >
                 <span className="ws-btn-icon">{Icon.trash}</span> Delete workspace
               </button>

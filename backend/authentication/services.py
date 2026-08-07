@@ -9,7 +9,7 @@ from .exceptions import UserRegistrationException, InvalidCredentialsException, 
 User = get_user_model()
 logger = logging.getLogger("authentication")
 
-
+# This class is created to provide services for the authentication
 class AuthenticationService:
     @staticmethod
     @transaction.atomic
@@ -57,3 +57,17 @@ class AuthenticationService:
             "access": str(refresh.access_token),
             "refresh": str(refresh),
         }
+
+    @staticmethod
+    def update_password(user, validated_data):
+        current_password = validated_data["current_password"]
+        new_password = validated_data["new_password"]
+
+        if not user.check_password(current_password):
+            logger.warning("Password update failed: Incorrect current password for username: %s", user.username)
+            raise InvalidCredentialsException(detail="Incorrect current password.")
+
+        user.set_password(new_password)
+        user.save()
+        logger.info("User successfully updated password: %s", user.username)
+        return user

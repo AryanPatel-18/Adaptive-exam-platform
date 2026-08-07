@@ -34,7 +34,7 @@ class RecentQuizSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Quiz
-        fields = ['id', 'title', 'total_questions', 'created_at', 'attempted_questions', 'score']
+        fields = ['id', 'title', 'total_questions', 'created_at', 'attempted_questions', 'score', 'workspace']
 
     def _get_latest_attempt(self, obj):
         user = self.context.get('request').user if self.context.get('request') else obj.created_by
