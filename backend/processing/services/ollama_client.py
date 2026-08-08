@@ -10,8 +10,8 @@ OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
 OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
 
 OLLAMA_MODEL_CLEAN = "qwen3:1.7b"
-OLLAMA_MODEL_TOPICS = "qwen3:8b"
-OLLAMA_MODEL_QUESTION_TOPICS = "qwen3:4b"
+OLLAMA_MODEL_TOPICS = "qwen3:4b"
+OLLAMA_MODEL_QUESTION_TOPICS = "qwen3:1.7b"
 
 
 class OllamaClient:

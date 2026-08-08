@@ -331,7 +331,7 @@ export default function Dashboard({
               <div className="db-list-header">
                 <span className="db-list-header-icon"><QuizeIcon/></span>
                 <h2 className="db-list-title">Recent Quizzes</h2>
-                <button className="db-view-all-btn" id="db-quizzes-view-all" onClick={onViewAllQuizzes}>View All</button>
+                {/* <button className="db-view-all-btn" id="db-quizzes-view-all" onClick={onViewAllQuizzes}>View All</button> */}
               </div>
 
               <ul className="db-list" role="list">
