@@ -6,7 +6,7 @@ from schedule.exceptions import ScheduleGenerationFailedException
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "qwen3:4b"
+OLLAMA_MODEL = "qwen3:8b"
 REQUEST_TIMEOUT = 300
 
 class OllamaScheduleGenerator:
@@ -57,7 +57,7 @@ class OllamaScheduleGenerator:
         """
         Generate a study schedule using chunking for small LLMs.
         """
-        logger.info("Starting schedule generation with model: %s", OLLAMA_MODEL)
+        logger.info("Starting schedule generation using the upgraded 8B model: %s", OLLAMA_MODEL)
         
         # Process all topics in a single chunk to prevent long sequential LLM delays,
         # but keep the simplified flat-array output format to ensure schema validity.
